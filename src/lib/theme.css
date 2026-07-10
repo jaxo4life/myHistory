@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* 浅色主题（默认） */
+  --bg: 255 255 255;
+  --card: 248 248 248;
+  --border: 229 229 229;
+  --fg: 23 23 23;
+  --muted: 142 142 142;
+  --accent: 108 92 231; /* #6C5CE7 */
+}
+
+.dark {
+  /* 深色主题（复刻截图） */
+  --bg: 30 30 30; /* #1E1E1E */
+  --card: 37 37 37; /* #252525 */
+  --border: 42 42 42; /* #2A2A2A */
+  --fg: 255 255 255;
+  --muted: 142 142 142; /* #8E8E8E */
+  --accent: 108 92 231; /* #6C5CE7 */
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-family: Inter, system-ui, sans-serif;
+}
