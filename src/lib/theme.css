@@ -27,3 +27,12 @@ body {
   color: rgb(var(--fg));
   font-family: Inter, system-ui, sans-serif;
 }
+
+/* 隐藏滚动条但保留滚动（用于中栏历史列表等） */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE/旧 Edge */
+  scrollbar-width: none; /* Firefox */
+}

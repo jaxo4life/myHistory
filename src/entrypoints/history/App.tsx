@@ -35,7 +35,7 @@ export function App() {
           />
         </aside>
         {/* 中栏：选中日历史 */}
-        <main className="w-1/2 overflow-y-auto p-4">
+        <main className="no-scrollbar w-1/2 overflow-y-auto p-4">
           <div className="mb-3 text-sm text-muted">已选：{selectedDayKey}</div>
           <HistoryList visits={visits} />
         </main>
