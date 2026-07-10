@@ -33,13 +33,14 @@ export async function deleteVisit(id: number): Promise<void> {
 }
 
 /**
- * 跨全部历史搜索：关键词匹配 title/url/domain，可选域名/类别/时间范围过滤。
- * 类别过滤用用户自定义分类规则。结果按访问时间倒序。
+ * 跨全部历史搜索：关键词匹配 title/url/domain，可选域名/类别/标签/时间范围过滤。
+ * 结果按访问时间倒序。
  */
 export async function searchVisits(opts: {
   query: string;
   domain?: string;
   category?: string;
+  tag?: string;
   startDate?: number;
   endDate?: number;
 }): Promise<Visit[]> {
@@ -60,6 +61,9 @@ export async function searchVisits(opts: {
   if (opts.category) {
     const rules = await getCategories();
     rows = rows.filter((v) => classifyDomain(v.domain, rules) === opts.category);
+  }
+  if (opts.tag) {
+    rows = rows.filter((v) => (v.tags ?? []).includes(opts.tag!));
   }
   if (opts.startDate) rows = rows.filter((v) => v.visitTime >= opts.startDate!);
   if (opts.endDate) rows = rows.filter((v) => v.visitTime < opts.endDate!);
@@ -138,5 +142,24 @@ export async function getCategoryCounts(): Promise<{ category: string; count: nu
   }
   return [...map.entries()]
     .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+/** 更新某条记录的标签全集。 */
+export async function updateVisitTags(id: number, tags: string[]): Promise<void> {
+  await db.visits.update(id, { tags });
+}
+
+/** 聚合所有标签及其使用次数，按次数倒序。 */
+export async function getAllTags(): Promise<{ tag: string; count: number }[]> {
+  const rows = await db.visits.toArray();
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    for (const t of r.tags ?? []) {
+      map.set(t, (map.get(t) ?? 0) + 1);
+    }
+  }
+  return [...map.entries()]
+    .map(([tag, count]) => ({ tag, count }))
     .sort((a, b) => b.count - a.count);
 }

@@ -4,6 +4,7 @@ import { HistoryList } from '../../components/HistoryList';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { DomainStats } from '../../components/DomainStats';
 import { CategoryStats } from '../../components/CategoryStats';
+import { TagStats } from '../../components/TagStats';
 import { AnalyticsView } from '../../components/AnalyticsView';
 import { getByDayKey, searchVisits, deleteVisits, clearAllVisits } from '../../db/queries';
 import { getDayKey } from '../../lib/url-utils';
@@ -20,9 +21,9 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  // 设置（含自定义分类）变化时递增，驱动依赖分类的 liveQuery 重新查询
   const [settingsVersion, setSettingsVersion] = useState(0);
 
   useEffect(() => {
@@ -37,10 +38,19 @@ export function App() {
 
   const visits = useLiveQuery(() => getByDayKey(selectedDayKey), [selectedDayKey]);
   const hasFilter =
-    searchQuery.trim() !== '' || domainFilter.trim() !== '' || categoryFilter !== '';
+    searchQuery.trim() !== '' ||
+    domainFilter.trim() !== '' ||
+    categoryFilter !== '' ||
+    tagFilter !== '';
   const searchResults = useLiveQuery(
-    () => searchVisits({ query: searchQuery, domain: domainFilter, category: categoryFilter }),
-    [searchQuery, domainFilter, categoryFilter, settingsVersion],
+    () =>
+      searchVisits({
+        query: searchQuery,
+        domain: domainFilter,
+        category: categoryFilter,
+        tag: tagFilter,
+      }),
+    [searchQuery, domainFilter, categoryFilter, tagFilter, settingsVersion],
   );
   const listVisits = hasFilter ? searchResults : visits;
 
@@ -150,6 +160,14 @@ export function App() {
                   类别: {categoryFilter} ✕
                 </button>
               )}
+              {tagFilter && (
+                <button
+                  onClick={() => setTagFilter('')}
+                  className="rounded bg-accent/20 px-2 py-1 text-xs text-accent"
+                >
+                  #{tagFilter} ✕
+                </button>
+              )}
               {selectionMode ? (
                 <>
                   <span className="text-xs text-muted">已选 {selectedIds.size}</span>
@@ -187,9 +205,10 @@ export function App() {
               selectionMode={selectionMode}
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
+              onTagClick={setTagFilter}
             />
           </main>
-          {/* 右栏：分类 + 最常访问 + 清空 */}
+          {/* 右栏：分类 + 标签 + 最常访问 + 清空 */}
           <aside className="no-scrollbar flex w-1/4 flex-col overflow-y-auto border-l border-border p-4">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-sm font-semibold text-fg">分类</span>
@@ -202,6 +221,10 @@ export function App() {
               </button>
             </div>
             <CategoryStats onPick={setCategoryFilter} version={settingsVersion} />
+
+            <div className="mb-1 mt-4 text-sm font-semibold text-fg">标签</div>
+            <TagStats onPick={setTagFilter} version={settingsVersion} />
+
             <div className="mb-1 mt-4 text-sm font-semibold text-fg">最常访问</div>
             <div className="flex-1">
               <DomainStats onPick={setDomainFilter} />

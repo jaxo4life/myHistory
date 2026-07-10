@@ -8,6 +8,7 @@ export interface Visit {
   transitionType: string; // link/typed/redirect/reload...
   referrerUrl?: string;
   faviconUrl?: string;
+  tags?: string[];
 }
 
 /** 写入时不含自增 id */

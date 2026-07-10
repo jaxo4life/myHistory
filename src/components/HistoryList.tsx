@@ -6,9 +6,16 @@ interface ListProps {
   selectionMode?: boolean;
   selectedIds?: Set<number>;
   onToggleSelect?: (id: number) => void;
+  onTagClick?: (tag: string) => void;
 }
 
-export function HistoryList({ visits, selectionMode, selectedIds, onToggleSelect }: ListProps) {
+export function HistoryList({
+  visits,
+  selectionMode,
+  selectedIds,
+  onToggleSelect,
+  onTagClick,
+}: ListProps) {
   if (visits === undefined) {
     return <div className="p-4 text-muted">加载中…</div>;
   }
@@ -24,6 +31,7 @@ export function HistoryList({ visits, selectionMode, selectedIds, onToggleSelect
           selectionMode={selectionMode}
           selected={v.id !== undefined && selectedIds?.has(v.id)}
           onToggleSelect={onToggleSelect}
+          onTagClick={onTagClick}
         />
       ))}
     </div>
