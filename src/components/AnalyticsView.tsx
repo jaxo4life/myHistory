@@ -5,6 +5,8 @@ import {
   getHourlyDistribution,
   getTopDomains,
   getCategoryCounts,
+  getWeekdayHourMatrix,
+  getTransitionCounts,
 } from '../db/queries';
 import {
   AreaChart,
@@ -20,11 +22,28 @@ import {
 import { CategoryManager } from './CategoryManager';
 
 const MUTED = '#8E8E8E';
-// 数据可视化调色板（品牌紫保留给按钮/选中，图表用多彩）
-const TREND = '#3B82F6'; // 趋势：蓝
-const HOUR_BASE = 'rgba(108,92,231,0.35)'; // 时段常态：紫
-const HOUR_PEAK = '#F97316'; // 最忙时段：橙
+const TREND = '#3B82F6';
+const HOUR_BASE = 'rgba(108,92,231,0.35)';
+const HOUR_PEAK = '#F97316';
 const KPI_COLORS = ['#6C5CE7', '#3B82F6', '#14B8A6', '#EC4899'];
+const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // 周一开始
+const WEEKDAY_LABELS = ['一', '二', '三', '四', '五', '六', '日'];
+const TRANSITION_LABELS: Record<string, string> = {
+  link: '链接点击',
+  typed: '地址栏输入',
+  reload: '刷新',
+  generated: '页面生成',
+  auto_bookmark: '书签',
+  auto_subframe: '子框架',
+  auto_toplevel: '顶层框架',
+  form_submit: '表单提交',
+  keyword: '关键字',
+  keyword_generated: '关键字生成',
+  manual_subframe: '手动子框架',
+  redirect: '重定向',
+  restore: '会话恢复',
+  start_page: '起始页',
+};
 
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
@@ -70,9 +89,13 @@ export function AnalyticsView() {
   const hourly = useLiveQuery(() => getHourlyDistribution(), []);
   const top = useLiveQuery(() => getTopDomains(20), []);
   const cats = useLiveQuery(() => getCategoryCounts(), []);
+  const matrix = useLiveQuery(() => getWeekdayHourMatrix(), []);
+  const transitions = useLiveQuery(() => getTransitionCounts(), []);
 
   const peakHour = overview?.peakHour ?? -1;
   const maxCat = cats && cats.length > 0 ? cats[0].count : 1;
+  const maxCell = matrix && matrix.length > 0 ? Math.max(...matrix.flat(), 1) : 1;
+  const transTotal = transitions?.reduce((s, t) => s + t.count, 0) ?? 0;
 
   const kpis = [
     { label: '总访问', value: overview?.total ?? '…', hint: '全部累计', color: KPI_COLORS[0] },
@@ -133,7 +156,47 @@ export function AnalyticsView() {
         </div>
       </div>
 
-      {/* 时段 + Top 域名 */}
+      {/* 一周×时段热力图 */}
+      <div className="mb-6 rounded-2xl bg-card p-5">
+        <div className="mb-3 text-sm font-semibold text-fg">一周 × 时段热力</div>
+        <div className="flex gap-2">
+          <div className="flex flex-col justify-around py-0.5 text-[10px] text-muted">
+            {WEEKDAY_LABELS.map((l) => (
+              <div key={l} className="h-3 leading-3">
+                {l}
+              </div>
+            ))}
+          </div>
+          <div className="flex-1 space-y-px">
+            {WEEKDAY_ORDER.map((wd, i) => (
+              <div key={wd} className="flex gap-px">
+                {(matrix?.[wd] ?? new Array(24).fill(0)).map((count, hr) => (
+                  <div
+                    key={hr}
+                    className="h-3 flex-1 rounded-sm"
+                    style={{
+                      backgroundColor:
+                        count > 0
+                          ? `rgba(108,92,231,${0.15 + (count / maxCell) * 0.85})`
+                          : 'rgba(128,128,128,0.08)',
+                    }}
+                    title={`${WEEKDAY_LABELS[i]} ${hr}:00 · ${count} 次`}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="mt-1 flex justify-between pl-5 text-[10px] text-muted">
+          <span>0</span>
+          <span>6</span>
+          <span>12</span>
+          <span>18</span>
+          <span>23</span>
+        </div>
+      </div>
+
+      {/* 活跃时段 + 访问来源 */}
       <div className="mb-6 grid grid-cols-2 gap-4">
         <div className="rounded-2xl bg-card p-5">
           <div className="mb-3 flex items-center justify-between">
@@ -173,8 +236,34 @@ export function AnalyticsView() {
         </div>
 
         <div className="rounded-2xl bg-card p-5">
+          <div className="mb-3 text-sm font-semibold text-fg">访问来源</div>
+          {(transitions ?? []).map(({ type, count }) => (
+            <div key={type} className="mb-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-fg">{TRANSITION_LABELS[type] ?? type}</span>
+                <span className="text-muted">
+                  {count} · {transTotal ? Math.round((count / transTotal) * 100) : 0}%
+                </span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-border">
+                <div
+                  className="h-full rounded-full bg-accent"
+                  style={{ width: `${transTotal ? (count / transTotal) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+          ))}
+          {transitions && transitions.length === 0 && (
+            <div className="text-sm text-muted">暂无数据</div>
+          )}
+        </div>
+      </div>
+
+      {/* Top 域名 + 分类分布 */}
+      <div className="mb-6 grid grid-cols-2 gap-4">
+        <div className="rounded-2xl bg-card p-5">
           <div className="mb-3 text-sm font-semibold text-fg">最常访问 Top 20</div>
-          <div className="no-scrollbar flex h-40 flex-col gap-1 overflow-y-auto">
+          <div className="no-scrollbar flex h-56 flex-col gap-1 overflow-y-auto">
             {(top ?? []).map(({ domain, count }, i) => (
               <div key={domain} className="flex items-center gap-2 text-sm">
                 <span className="w-5 shrink-0 text-right text-xs text-muted">{i + 1}</span>
@@ -185,34 +274,24 @@ export function AnalyticsView() {
             {top && top.length === 0 && <div className="text-sm text-muted">暂无数据</div>}
           </div>
         </div>
-      </div>
 
-      {/* 分类分布卡片 */}
-      <div className="mb-6 rounded-2xl bg-card p-5">
-        <div className="mb-3 text-sm font-semibold text-fg">分类分布</div>
-        <div className="grid grid-cols-4 gap-3">
-          {(cats ?? []).map(({ category, count, icon, color }) => (
-            <div
-              key={category}
-              className="rounded-xl p-3 text-center"
-              style={{ backgroundColor: `${color}14` }}
-            >
-              <div className="text-2xl">{icon}</div>
-              <div className="mt-1 truncate text-sm text-fg">{category}</div>
-              <div className="text-xs font-semibold" style={{ color }}>
-                {count}
-              </div>
+        <div className="rounded-2xl bg-card p-5">
+          <div className="mb-3 text-sm font-semibold text-fg">分类分布</div>
+          <div className="grid grid-cols-3 gap-2">
+            {(cats ?? []).map(({ category, count, icon, color }) => (
               <div
-                className="mt-2 h-1 overflow-hidden rounded-full"
-                style={{ backgroundColor: `${color}33` }}
+                key={category}
+                className="rounded-xl p-2 text-center"
+                style={{ backgroundColor: `${color}14` }}
               >
-                <div
-                  className="h-full"
-                  style={{ width: `${(count / maxCat) * 100}%`, backgroundColor: color }}
-                />
+                <div className="text-xl">{icon}</div>
+                <div className="mt-0.5 truncate text-xs text-fg">{category}</div>
+                <div className="text-xs font-semibold" style={{ color }}>
+                  {count}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 

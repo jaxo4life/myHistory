@@ -170,6 +170,29 @@ export async function getCategoryCounts(): Promise<
     .sort((a, b) => b.count - a.count);
 }
 
+/** 一周(0=周日..6=周六) × 24小时 的访问计数矩阵（热力图用）。 */
+export async function getWeekdayHourMatrix(): Promise<number[][]> {
+  const rows = await db.visits.toArray();
+  const matrix: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0));
+  for (const r of rows) {
+    const d = new Date(r.visitTime);
+    matrix[d.getDay()][d.getHours()]++;
+  }
+  return matrix;
+}
+
+/** 访问来源(transitionType) 分布，按次数倒序。 */
+export async function getTransitionCounts(): Promise<{ type: string; count: number }[]> {
+  const rows = await db.visits.toArray();
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    map.set(r.transitionType, (map.get(r.transitionType) ?? 0) + 1);
+  }
+  return [...map.entries()]
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 /** 更新某条记录的标签全集。 */
 export async function updateVisitTags(id: number, tags: string[]): Promise<void> {
   await db.visits.update(id, { tags });
