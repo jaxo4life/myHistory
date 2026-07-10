@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getCategoryCounts } from '../db/queries';
 
-/** 右栏：分类彩色卡片 tag 网格，点击某类别联动中栏过滤。 */
+/** 右栏：分类行式列表（左色条占比 + 计数），点击联动中栏过滤。 */
 export function CategoryStats({
   onPick,
   version,
@@ -14,23 +14,35 @@ export function CategoryStats({
   if (!cats) return <div className="text-sm text-muted">加载中…</div>;
   if (cats.length === 0) return <div className="text-sm text-muted">暂无数据</div>;
 
+  const max = cats[0].count;
+
   return (
-    <div className="grid grid-cols-2 gap-1.5">
-      {cats.map(({ category, count, icon, color }) => (
-        <button
-          key={category}
-          onClick={() => onPick(category)}
-          className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs transition-opacity hover:opacity-80"
-          style={{ backgroundColor: `${color}1f` }}
-          title={`按「${category}」过滤`}
-        >
-          <span className="text-sm">{icon}</span>
-          <span className="min-w-0 flex-1 truncate text-fg">{category}</span>
-          <span className="shrink-0 font-semibold" style={{ color }}>
-            {count}
-          </span>
-        </button>
-      ))}
+    <div className="flex flex-col gap-0.5">
+      {cats.map(({ category, count, icon, color }) => {
+        const pct = max ? (count / max) * 100 : 0;
+        return (
+          <button
+            key={category}
+            onClick={() => onPick(category)}
+            className="relative block w-full overflow-hidden rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-card"
+            title={`按「${category}」过滤`}
+          >
+            <span
+              className="absolute inset-y-0 left-0 opacity-[0.12]"
+              style={{ width: `${pct}%`, backgroundColor: color }}
+            />
+            <span className="relative flex items-center gap-2 text-xs">
+              <span className="shrink-0" style={{ color }}>
+                {icon}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-fg">{category}</span>
+              <span className="shrink-0 font-semibold tabular-nums" style={{ color }}>
+                {count}
+              </span>
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

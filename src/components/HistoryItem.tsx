@@ -42,40 +42,46 @@ export function HistoryItem({
 
   return (
     <div
-      className={`flex flex-col rounded px-3 py-2 text-sm ${
-        selected ? 'bg-accent/20 ring-1 ring-accent' : 'bg-card'
+      className={`group flex flex-col transition-colors ${
+        selected ? 'bg-accent/10' : 'hover:bg-card'
       }`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 px-3 py-2">
         {selectionMode && (
           <input
             type="checkbox"
             checked={!!selected}
             onChange={() => onToggleSelect?.(visit.id!)}
-            className="h-4 w-4 shrink-0"
+            className="h-4 w-4 shrink-0 accent-accent"
           />
         )}
-        <span className="w-10 shrink-0 text-xs text-muted">{formatTime(visit.visitTime)}</span>
-        {visit.faviconUrl && <img src={visit.faviconUrl} alt="" className="h-4 w-4 shrink-0" />}
+        <span className="w-10 shrink-0 text-right text-xs tabular-nums text-muted">
+          {formatTime(visit.visitTime)}
+        </span>
+        {visit.faviconUrl ? (
+          <img src={visit.faviconUrl} alt="" className="h-4 w-4 shrink-0 rounded-sm" />
+        ) : (
+          <span className="h-4 w-4 shrink-0 rounded-sm bg-card" />
+        )}
         <div className="min-w-0 flex-1">
           <div className="truncate text-fg">{visit.title}</div>
-          <div className="truncate text-xs text-accent">{visit.domain}</div>
+          <div className="truncate text-xs text-muted">{visit.domain}</div>
         </div>
         {!selectionMode && (
-          <>
+          <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
             <a
               href={visit.url}
               target="_blank"
               rel="noreferrer"
-              className="shrink-0 text-muted hover:text-fg"
+              className="rounded p-1 text-muted transition-colors hover:bg-border hover:text-fg"
               title="打开"
             >
               ↗
             </a>
             <button
               onClick={() => setTagModal(true)}
-              className={`shrink-0 rounded px-1 text-xs ${
-                hasTags ? 'bg-accent/20 text-accent' : 'text-muted hover:text-fg'
+              className={`rounded p-1 transition-colors ${
+                hasTags ? 'text-accent' : 'text-muted hover:text-fg'
               }`}
               title={hasTags ? `标签：${tags.join(', ')}` : '编辑标签'}
             >
@@ -83,25 +89,24 @@ export function HistoryItem({
             </button>
             <button
               onClick={() => deleteVisit(visit.id!)}
-              className="shrink-0 text-muted hover:text-fg"
+              className="rounded p-1 text-muted transition-colors hover:bg-border hover:text-red-400"
               title="删除"
             >
               ×
             </button>
-          </>
+          </div>
         )}
       </div>
       {hasTags && (
-        <div className="mt-1.5 flex flex-wrap gap-1 pl-[52px]">
+        <div className="flex flex-wrap gap-1 px-3 pb-2">
           {tags.map((t) => (
-            <span
+            <button
               key={t}
-              className="inline-flex items-center rounded bg-bg px-1.5 text-[10px] text-muted"
+              onClick={() => onTagClick?.(t)}
+              className="rounded bg-card px-1.5 py-0.5 text-[10px] text-muted transition-colors hover:text-accent"
             >
-              <button onClick={() => onTagClick?.(t)} className="hover:text-accent">
-                #{t}
-              </button>
-            </span>
+              #{t}
+            </button>
           ))}
         </div>
       )}
@@ -162,7 +167,7 @@ function TagEditor({
             onAdd(input);
             setInput('');
           }}
-          className="rounded bg-accent px-3 py-1 text-sm text-white hover:opacity-90"
+          className="rounded bg-accent px-3 py-1 text-sm text-white transition-opacity hover:opacity-90"
         >
           添加
         </button>

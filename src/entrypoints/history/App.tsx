@@ -5,6 +5,7 @@ import { ThemeToggle } from '../../components/ThemeToggle';
 import { DomainStats } from '../../components/DomainStats';
 import { CategoryStats } from '../../components/CategoryStats';
 import { TagStats } from '../../components/TagStats';
+import { DaySummary } from '../../components/DaySummary';
 import { AnalyticsView } from '../../components/AnalyticsView';
 import { ManageView } from '../../components/ManageView';
 import { getByDayKey, searchVisits, deleteVisits } from '../../db/queries';
@@ -62,27 +63,45 @@ export function App() {
     setSelectionMode(false);
   }
 
+  function selectAll() {
+    const ids = (listVisits ?? [])
+      .map((v) => v.id)
+      .filter((x): x is number => x !== undefined);
+    setSelectedIds(new Set(ids));
+  }
+
   if (!settings) return <div className="p-4 text-muted">加载中…</div>;
 
-  const tabBtn = (v: View) =>
-    `rounded px-3 py-1 text-sm ${view === v ? 'bg-accent text-white' : 'bg-card text-fg'}`;
+  const tabs: { v: View; label: string }[] = [
+    { v: 'history', label: '历史' },
+    { v: 'analytics', label: '分析' },
+    { v: 'manage', label: '管理' },
+  ];
 
   return (
     <div className="flex h-screen flex-col bg-bg text-fg">
-      <header className="flex items-center justify-between border-b border-border p-3">
-        <div className="flex items-end gap-4">
+      <header className="flex items-center justify-between border-b border-border px-6">
+        <div className="flex items-center gap-5">
           <img src="/icon/512.png" alt="myHistory" className="h-16 w-16" />
-          <div className="flex gap-1">
-            <button onClick={() => setView('history')} className={tabBtn('history')}>
-              历史
-            </button>
-            <button onClick={() => setView('analytics')} className={tabBtn('analytics')}>
-              分析
-            </button>
-            <button onClick={() => setView('manage')} className={tabBtn('manage')}>
-              管理
-            </button>
-          </div>
+          <nav className="flex h-16">
+            {tabs.map(({ v, label }) => {
+              const active = view === v;
+              return (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={`relative flex h-full items-center px-4 text-sm transition-colors ${
+                    active ? 'text-fg' : 'text-muted hover:text-fg'
+                  }`}
+                >
+                  {label}
+                  {active && (
+                    <span className="absolute inset-x-3 bottom-0 h-0.5 bg-accent" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
         </div>
         <ThemeToggle />
       </header>
@@ -94,75 +113,104 @@ export function App() {
       ) : (
         <div className="flex flex-1 overflow-hidden">
           {/* 左栏：日历 */}
-          <aside className="w-1/4 border-r border-border p-4">
+          <aside className="w-72 shrink-0 p-5">
             <Calendar
               weekStart={settings.weekStart}
               selectedDayKey={selectedDayKey}
               onSelect={setSelectedDayKey}
             />
+            <div className="mt-6">
+              <div className="mb-2 text-xs font-medium tracking-wide text-muted">当日概览</div>
+              <DaySummary dayKey={selectedDayKey} />
+            </div>
           </aside>
           {/* 中栏：搜索 + 历史 */}
-          <main className="no-scrollbar w-1/2 overflow-y-auto p-4">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="搜索标题 / URL / 域名…"
-                className="min-w-0 flex-1 rounded bg-card px-3 py-1.5 text-sm text-fg outline-none ring-1 ring-border focus:ring-accent"
-              />
-              <input
-                value={domainFilter}
-                onChange={(e) => setDomainFilter(e.target.value)}
-                placeholder="域名过滤"
-                className="w-28 rounded bg-card px-3 py-1.5 text-sm text-fg outline-none ring-1 ring-border focus:ring-accent"
-              />
-              {categoryFilter && (
-                <button
-                  onClick={() => setCategoryFilter('')}
-                  className="rounded bg-accent/20 px-2 py-1 text-xs text-accent"
+          <main className="no-scrollbar flex-1 overflow-y-auto px-6 py-5">
+            <div className="mb-4">
+              <div className="relative">
+                <svg
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
                 >
-                  类别: {categoryFilter} ✕
-                </button>
-              )}
-              {tagFilter && (
-                <button
-                  onClick={() => setTagFilter('')}
-                  className="rounded bg-accent/20 px-2 py-1 text-xs text-accent"
-                >
-                  #{tagFilter} ✕
-                </button>
-              )}
-              {selectionMode ? (
-                <>
-                  <span className="text-xs text-muted">已选 {selectedIds.size}</span>
-                  <button
-                    onClick={deleteSelected}
-                    disabled={selectedIds.size === 0}
-                    className="rounded bg-accent px-2 py-1.5 text-xs text-white disabled:opacity-40"
-                  >
-                    删除选中
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectionMode(false);
-                      setSelectedIds(new Set());
-                    }}
-                    className="rounded bg-card px-2 py-1.5 text-xs text-fg"
-                  >
-                    取消
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setSelectionMode(true)}
-                  className="rounded bg-card px-2 py-1.5 text-xs text-fg"
-                >
-                  选择
-                </button>
-              )}
-            </div>
-            <div className="mb-3 text-sm text-muted">
-              {hasFilter ? `结果：${listVisits?.length ?? 0} 条` : `已选：${selectedDayKey}`}
+                  <circle cx="7" cy="7" r="5" />
+                  <path d="M11 11l3 3" />
+                </svg>
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="搜索标题 / URL / 域名…"
+                  className="w-full rounded-lg bg-card py-2 pl-9 pr-3 text-sm text-fg outline-none ring-1 ring-border transition-shadow focus:ring-accent"
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {selectionMode ? (
+                  <>
+                    <span className="text-xs text-muted">已选 {selectedIds.size} 条</span>
+                    <button
+                      onClick={selectAll}
+                      className="rounded-lg bg-card px-2.5 py-1 text-xs text-fg transition-colors hover:bg-border"
+                    >
+                      全选
+                    </button>
+                    <button
+                      onClick={deleteSelected}
+                      disabled={selectedIds.size === 0}
+                      className="rounded-lg bg-accent px-2.5 py-1 text-xs text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                    >
+                      删除选中
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectionMode(false);
+                        setSelectedIds(new Set());
+                      }}
+                      className="ml-auto rounded-lg bg-card px-2.5 py-1 text-xs text-fg transition-colors hover:bg-border"
+                    >
+                      取消
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      value={domainFilter}
+                      onChange={(e) => setDomainFilter(e.target.value)}
+                      placeholder="域名"
+                      className="w-28 rounded-lg bg-card px-2.5 py-1 text-xs text-fg outline-none ring-1 ring-border transition-shadow focus:ring-accent"
+                    />
+                    {categoryFilter && (
+                      <button
+                        onClick={() => setCategoryFilter('')}
+                        className="rounded-lg bg-accent/15 px-2 py-1 text-xs text-accent transition-colors hover:bg-accent/25"
+                      >
+                        类别: {categoryFilter} ✕
+                      </button>
+                    )}
+                    {tagFilter && (
+                      <button
+                        onClick={() => setTagFilter('')}
+                        className="rounded-lg bg-accent/15 px-2 py-1 text-xs text-accent transition-colors hover:bg-accent/25"
+                      >
+                        #{tagFilter} ✕
+                      </button>
+                    )}
+                    {hasFilter && (
+                      <span className="text-xs text-muted">
+                        {listVisits?.length ?? 0} 条结果
+                      </span>
+                    )}
+                    <button
+                      onClick={() => setSelectionMode(true)}
+                      className="ml-auto rounded-lg bg-card px-2.5 py-1 text-xs text-fg transition-colors hover:bg-border"
+                    >
+                      选择
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
             <HistoryList
               visits={listVisits}
@@ -173,7 +221,7 @@ export function App() {
             />
           </main>
           {/* 右栏：分类 + 标签 + 最常访问 */}
-          <aside className="no-scrollbar flex w-1/4 flex-col overflow-y-auto border-l border-border p-4">
+          <aside className="no-scrollbar flex w-[300px] shrink-0 flex-col overflow-y-auto p-5">
             <div className="mb-1 text-sm font-semibold text-fg">分类</div>
             <CategoryStats onPick={setCategoryFilter} version={settingsVersion} />
             <div className="mb-1 mt-4 text-sm font-semibold text-fg">标签</div>
