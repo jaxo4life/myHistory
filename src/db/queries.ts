@@ -86,3 +86,8 @@ export async function clearAllVisits(): Promise<void> {
 export async function deleteByDomain(domain: string): Promise<void> {
   await db.visits.where('domain').equals(domain).delete();
 }
+
+/** 批量删除多条记录。 */
+export async function deleteVisits(ids: number[]): Promise<void> {
+  await db.visits.bulkDelete(ids);
+}
