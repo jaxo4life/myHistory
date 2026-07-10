@@ -71,7 +71,7 @@ export function App() {
     <div className="flex h-screen flex-col bg-bg text-fg">
       <header className="flex items-center justify-between border-b border-border p-3">
         <div className="flex items-center gap-4">
-          <span className="text-lg font-semibold">myHistory</span>
+          <img src="/icon/512.png" alt="myHistory" className="h-7 w-7" />
           <div className="flex gap-1">
             <button onClick={() => setView('history')} className={tabBtn('history')}>
               历史
