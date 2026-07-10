@@ -5,6 +5,7 @@ import { ThemeToggle } from '../../components/ThemeToggle';
 import { DomainStats } from '../../components/DomainStats';
 import { getByDayKey, searchVisits, deleteVisits, clearAllVisits } from '../../db/queries';
 import { getDayKey } from '../../lib/url-utils';
+import { visitsToCSV, visitsToJSON, downloadText } from '../../lib/exporter';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getSettings, type Settings } from '../../store/settings';
 
@@ -50,13 +51,39 @@ export function App() {
     setSelectedIds(new Set());
   }
 
+  function exportCurrent(format: 'csv' | 'json') {
+    const data = listVisits ?? [];
+    const name = showSearch ? 'search' : selectedDayKey;
+    if (format === 'csv') {
+      downloadText(`history-${name}.csv`, visitsToCSV(data), 'text/csv');
+    } else {
+      downloadText(`history-${name}.json`, visitsToJSON(data), 'application/json');
+    }
+  }
+
   if (!settings) return <div className="p-4 text-muted">加载中…</div>;
 
   return (
     <div className="flex h-screen flex-col bg-bg text-fg">
       <header className="flex items-center justify-between border-b border-border p-3">
         <span className="text-lg font-semibold">Chrome History Plus</span>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportCurrent('csv')}
+            title="导出当前列表为 CSV"
+            className="rounded bg-card px-2 py-1 text-xs text-fg"
+          >
+            导出 CSV
+          </button>
+          <button
+            onClick={() => exportCurrent('json')}
+            title="导出当前列表为 JSON"
+            className="rounded bg-card px-2 py-1 text-xs text-fg"
+          >
+            导出 JSON
+          </button>
+          <ThemeToggle />
+        </div>
       </header>
       <div className="flex flex-1 overflow-hidden">
         {/* 左栏：日历 */}
