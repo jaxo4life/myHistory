@@ -1,7 +1,8 @@
 import { db } from './database';
 import type { Visit, NewVisit } from '../types/visit';
-import { classifyDomain } from '../lib/categories';
+import { classifyDomain, DEFAULT_CATEGORY_ICON } from '../lib/categories';
 import { getCategories } from '../store/settings';
+import { getDayKey } from '../lib/url-utils';
 
 /** 写入一条访问记录，返回自增 id。 */
 export async function addVisit(visit: NewVisit): Promise<number> {
@@ -32,10 +33,7 @@ export async function deleteVisit(id: number): Promise<void> {
   await db.visits.delete(id);
 }
 
-/**
- * 跨全部历史搜索：关键词匹配 title/url/domain，可选域名/类别/标签/时间范围过滤。
- * 结果按访问时间倒序。
- */
+/** 跨全部历史搜索：关键词 + 域名/类别/标签/时间范围过滤，按访问时间倒序。 */
 export async function searchVisits(opts: {
   query: string;
   domain?: string;
@@ -70,7 +68,7 @@ export async function searchVisits(opts: {
   return rows.sort((a, b) => b.visitTime - a.visitTime);
 }
 
-/** 统计访问次数最多的域名，返回 [{domain, count}] 按次数倒序。 */
+/** 统计访问次数最多的域名，返回 [{domain, count}] 按次数倒序，取 limit 条。 */
 export async function getTopDomains(
   limit = 30,
 ): Promise<{ domain: string; count: number }[]> {
@@ -124,15 +122,34 @@ export async function getHourlyDistribution(): Promise<{ hour: number; count: nu
   return counts.map((count, hour) => ({ hour, count }));
 }
 
-/** 总统计：总访问数 + 不同域名数（用 count/uniqueKeys 避免全表加载）。 */
-export async function getTotalStats(): Promise<{ total: number; domains: number }> {
-  const total = await db.visits.count();
-  const domainKeys = await db.visits.orderBy('domain').uniqueKeys();
-  return { total, domains: domainKeys.length };
+/** 概览指标：总量/域名/今日/本周/日均/最忙时段。 */
+export async function getOverview(): Promise<{
+  total: number;
+  domains: number;
+  today: number;
+  week: number;
+  dailyAvg: number;
+  peakHour: number;
+}> {
+  const rows = await db.visits.toArray();
+  const total = rows.length;
+  const domains = new Set(rows.map((r) => r.domain)).size;
+  const todayKey = getDayKey(Date.now());
+  const today = rows.filter((r) => r.dayKey === todayKey).length;
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const week = rows.filter((r) => r.visitTime >= weekAgo).length;
+  const days = new Set(rows.map((r) => r.dayKey)).size;
+  const dailyAvg = days > 0 ? Math.round(total / days) : 0;
+  const hours = new Array(24).fill(0);
+  for (const r of rows) hours[new Date(r.visitTime).getHours()]++;
+  const peakHour = total > 0 ? hours.indexOf(Math.max(...hours)) : -1;
+  return { total, domains, today, week, dailyAvg, peakHour };
 }
 
-/** 按当前分类规则统计访问数，返回 [{category, count}] 按次数倒序。 */
-export async function getCategoryCounts(): Promise<{ category: string; count: number }[]> {
+/** 按当前分类规则统计访问数，含 icon，按次数倒序。 */
+export async function getCategoryCounts(): Promise<
+  { category: string; count: number; icon: string }[]
+> {
   const rules = await getCategories();
   const rows = await db.visits.toArray();
   const map = new Map<string, number>();
@@ -141,7 +158,11 @@ export async function getCategoryCounts(): Promise<{ category: string; count: nu
     map.set(c, (map.get(c) ?? 0) + 1);
   }
   return [...map.entries()]
-    .map(([category, count]) => ({ category, count }))
+    .map(([category, count]) => ({
+      category,
+      count,
+      icon: rules.find((r) => r.name === category)?.icon ?? DEFAULT_CATEGORY_ICON,
+    }))
     .sort((a, b) => b.count - a.count);
 }
 

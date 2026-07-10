@@ -1,9 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getTopDomains } from '../db/queries';
 
-/** 右栏：最常访问域名列表，点击某域名回调（用于联动中栏过滤）。 */
-export function DomainStats({ onPick }: { onPick: (domain: string) => void }) {
-  const top = useLiveQuery(() => getTopDomains(30), []);
+/** 最常访问域名列表。历史页传 limit=10，分析页传更大值。 */
+export function DomainStats({
+  onPick,
+  limit = 30,
+}: {
+  onPick: (domain: string) => void;
+  limit?: number;
+}) {
+  const top = useLiveQuery(() => getTopDomains(limit), [limit]);
 
   if (!top) return <div className="text-sm text-muted">加载中…</div>;
   if (top.length === 0) return <div className="text-sm text-muted">暂无数据</div>;

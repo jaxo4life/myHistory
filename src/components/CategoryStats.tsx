@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getCategoryCounts } from '../db/queries';
 
-/** 右栏：按当前分类规则统计，点击某类别回调（联动中栏过滤）。version 变化时重新查询。 */
+/** 右栏：分类卡片 tag 网格，点击某类别联动中栏过滤。version 变化时重新查询。 */
 export function CategoryStats({
   onPick,
   version,
@@ -14,23 +14,18 @@ export function CategoryStats({
   if (!cats) return <div className="text-sm text-muted">加载中…</div>;
   if (cats.length === 0) return <div className="text-sm text-muted">暂无数据</div>;
 
-  const max = cats[0].count;
-
   return (
-    <div className="flex flex-col gap-1">
-      {cats.map(({ category, count }) => (
+    <div className="grid grid-cols-2 gap-1.5">
+      {cats.map(({ category, count, icon }) => (
         <button
           key={category}
           onClick={() => onPick(category)}
-          className="relative flex items-center justify-between overflow-hidden rounded px-2 py-1 text-left text-sm hover:bg-card"
+          className="flex items-center gap-1.5 rounded-lg bg-card px-2 py-1.5 text-left text-xs hover:bg-border"
           title={`按「${category}」过滤`}
         >
-          <span
-            className="absolute left-0 top-0 h-full bg-accent opacity-10"
-            style={{ width: `${(count / max) * 100}%` }}
-          />
-          <span className="relative truncate text-fg">{category}</span>
-          <span className="relative ml-2 shrink-0 text-xs text-muted">{count}</span>
+          <span className="text-sm">{icon}</span>
+          <span className="min-w-0 flex-1 truncate text-fg">{category}</span>
+          <span className="shrink-0 text-muted">{count}</span>
         </button>
       ))}
     </div>

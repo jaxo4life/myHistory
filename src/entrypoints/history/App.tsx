@@ -227,7 +227,7 @@ export function App() {
 
             <div className="mb-1 mt-4 text-sm font-semibold text-fg">最常访问</div>
             <div className="flex-1">
-              <DomainStats onPick={setDomainFilter} />
+              <DomainStats onPick={setDomainFilter} limit={10} />
             </div>
             <button
               onClick={clearAll}
