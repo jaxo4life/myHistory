@@ -1,4 +1,4 @@
-# Chrome History Plus
+# myHistory
 
 开源、纯本地、可审计的 Chrome 浏览历史管理扩展——闭源的 [Browser History Plus](https://browserhistory.net/) 的开源替代。
 

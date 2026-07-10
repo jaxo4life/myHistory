@@ -1,4 +1,4 @@
-# Chrome History Plus — 阶段① MVP 实现计划
+# myHistory — 阶段① MVP 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -687,7 +687,7 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: 'Chrome History Plus',
+    name: 'myHistory',
     description: '开源、纯本地、可审计的浏览历史管理扩展',
     version: '0.1.0',
     permissions: ['webNavigation', 'tabs', 'history', 'storage'],
@@ -1331,7 +1331,7 @@ export function App() {
   return (
     <div className="flex h-screen flex-col bg-bg text-fg">
       <header className="flex items-center justify-between border-b border-border p-3">
-        <span className="text-lg font-semibold">Chrome History Plus</span>
+        <span className="text-lg font-semibold">myHistory</span>
         <ThemeToggle />
       </header>
       <div className="flex flex-1 overflow-hidden">
@@ -1387,7 +1387,7 @@ Create `src/entrypoints/history/index.html`:
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chrome History Plus</title>
+    <title>myHistory</title>
   </head>
   <body>
     <div id="app"></div>
@@ -1427,7 +1427,7 @@ export function App() {
 
   return (
     <div className="flex w-72 flex-col gap-3 bg-bg p-4 text-fg">
-      <h1 className="text-base font-semibold">Chrome History Plus</h1>
+      <h1 className="text-base font-semibold">myHistory</h1>
       <p className="text-xs text-muted">本地、私密、开源的浏览历史管理。</p>
       <button
         onClick={openHistory}
