@@ -6,6 +6,11 @@ import { getBlacklist } from '../store/settings';
 const BACKFILL_FLAG = 'history-plus:backfilled';
 
 export default defineBackground(() => {
+  // 点击扩展图标直接打开历史主界面（无 popup 中转）
+  chrome.action.onClicked.addListener(() => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('/history.html') });
+  });
+
   // 首次安装/更新时回填 Chrome 现存历史（最多 ~90 天）
   chrome.runtime.onInstalled.addListener(() => {
     backfillFromHistory().catch((e) => console.error('[history-plus] backfill failed', e));
