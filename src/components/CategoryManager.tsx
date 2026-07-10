@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getSettings, saveCategories, type Settings } from '../store/settings';
+import { getCategories, saveCategories } from '../store/settings';
 import {
   DEFAULT_CATEGORIES,
   ICON_LIBRARY,
@@ -16,18 +16,18 @@ interface FormState {
 
 const EMPTY: FormState = { name: '', icon: '📌', color: '#6C5CE7', patterns: '' };
 
-/** 分类管理：紧凑小卡片网格 + 点击编辑 + 新增。 */
+/** 分类管理：上方卡片网格（始终显示，当前编辑高亮）+ 下方隔离的编辑区。 */
 export function CategoryManager() {
-  const [settings, setSettings] = useState<Settings | null>(null);
+  const [categories, setCategories] = useState<CategoryDef[] | null>(null);
   // null=浏览态；'__new__'=新增；其他=编辑该名称
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
 
   useEffect(() => {
-    getSettings().then(setSettings);
+    getCategories().then(setCategories);
   }, []);
 
-  if (!settings) return <div className="text-sm text-muted">加载中…</div>;
+  if (!categories) return <div className="text-sm text-muted">加载中…</div>;
 
   function beginEdit(cat?: CategoryDef) {
     if (cat) {
@@ -44,6 +44,11 @@ export function CategoryManager() {
     }
   }
 
+  async function persist(next: CategoryDef[]) {
+    await saveCategories(next);
+    setCategories(next);
+  }
+
   async function saveForm() {
     const name = form.name.trim();
     if (!name) {
@@ -54,35 +59,31 @@ export function CategoryManager() {
       .split(/[\s,，]+/)
       .map((s) => s.trim())
       .filter(Boolean);
-    const next: CategoryDef = { name, icon: form.icon, color: form.color, patterns };
+    const nextCat: CategoryDef = { name, icon: form.icon, color: form.color, patterns };
 
-    let categories: CategoryDef[];
+    let next: CategoryDef[];
     if (editing === '__new__') {
-      if (settings.categories.some((c) => c.name === name)) {
+      if (categories.some((c) => c.name === name)) {
         alert('该分类名已存在');
         return;
       }
-      categories = [...settings.categories, next];
+      next = [...categories, nextCat];
     } else {
-      categories = settings.categories.map((c) => (c.name === editing ? next : c));
+      next = categories.map((c) => (c.name === editing ? nextCat : c));
     }
-    await saveCategories(categories);
-    setSettings({ ...settings, categories });
+    await persist(next);
     setEditing(null);
   }
 
   async function remove(name: string) {
     if (!confirm(`删除分类「${name}」？`)) return;
-    const categories = settings.categories.filter((c) => c.name !== name);
-    await saveCategories(categories);
-    setSettings({ ...settings, categories });
+    await persist(categories.filter((c) => c.name !== name));
     setEditing(null);
   }
 
   async function reset() {
     if (!confirm('恢复内置默认分类？所有自定义将丢失。')) return;
-    await saveCategories(DEFAULT_CATEGORIES);
-    setSettings({ ...settings, categories: DEFAULT_CATEGORIES });
+    await persist(DEFAULT_CATEGORIES);
     setEditing(null);
   }
 
@@ -97,47 +98,47 @@ export function CategoryManager() {
         </button>
       </div>
 
+      {/* 卡片网格：始终显示，当前编辑的高亮 */}
       <div className="grid grid-cols-6 gap-1.5">
-        {settings.categories.map((cat) =>
-          editing === cat.name ? (
-            <EditForm
-              key={cat.name}
-              form={form}
-              setForm={setForm}
-              isNew={false}
-              onSave={saveForm}
-              onDelete={() => remove(cat.name)}
-              onCancel={() => setEditing(null)}
-            />
-          ) : (
+        {categories.map((cat) => {
+          const isActive = editing === cat.name;
+          const color = cat.color ?? '#6C5CE7';
+          return (
             <button
               key={cat.name}
               onClick={() => beginEdit(cat)}
               className="flex flex-col items-center gap-0.5 rounded-lg p-2 transition-opacity hover:opacity-80"
-              style={{ backgroundColor: `${cat.color ?? '#6C5CE7'}14` }}
-              title={`${cat.name} · ${cat.patterns.length} 条规则 · 点击编辑`}
+              style={{
+                backgroundColor: `${color}${isActive ? '33' : '14'}`,
+                boxShadow: isActive ? `0 0 0 2px ${color}` : undefined,
+              }}
+              title={`${cat.name} · ${cat.patterns.length} 条规则`}
             >
               <span className="text-lg leading-none">{cat.icon ?? '📌'}</span>
               <span
                 className="w-full truncate text-center text-[11px] leading-tight"
-                style={{ color: cat.color }}
+                style={{ color }}
               >
                 {cat.name}
               </span>
             </button>
-          ),
-        )}
+          );
+        })}
+      </div>
 
-        {editing === '__new__' && (
+      {/* 编辑区：下方独立隔离 */}
+      {editing && (
+        <div className="mt-3 rounded-xl bg-bg p-3 ring-1 ring-border">
           <EditForm
             form={form}
             setForm={setForm}
-            isNew
+            isNew={editing === '__new__'}
             onSave={saveForm}
+            onDelete={editing !== '__new__' ? () => remove(editing!) : undefined}
             onCancel={() => setEditing(null)}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {editing === null && (
         <button
@@ -167,7 +168,11 @@ function EditForm({
   onCancel: () => void;
 }) {
   return (
-    <div className="col-span-6 rounded-xl bg-bg p-3 ring-1 ring-border">
+    <div>
+      <div className="mb-2 text-xs font-medium text-muted">
+        {isNew ? '新增分类' : '编辑分类'}
+      </div>
+
       <div className="flex gap-2">
         <input
           value={form.name}

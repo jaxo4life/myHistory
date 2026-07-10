@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   getOverview,
@@ -91,11 +92,19 @@ function Kpi({
 }
 
 export function AnalyticsView() {
+  // 分类规则存在 chrome.storage，liveQuery 默认只监听 db；用 version 在 storage 变化时驱动重算
+  const [settingsVersion, setSettingsVersion] = useState(0);
+  useEffect(() => {
+    const handler = () => setSettingsVersion((v) => v + 1);
+    chrome.storage.onChanged.addListener(handler);
+    return () => chrome.storage.onChanged.removeListener(handler);
+  }, []);
+
   const overview = useLiveQuery(() => getOverview(), []);
   const daily = useLiveQuery(() => getDailyCounts(30), []);
   const hourly = useLiveQuery(() => getHourlyDistribution(), []);
   const top = useLiveQuery(() => getTopDomains(20), []);
-  const cats = useLiveQuery(() => getCategoryCounts(), []);
+  const cats = useLiveQuery(() => getCategoryCounts(), [settingsVersion]);
   const matrix = useLiveQuery(() => getWeekdayHourMatrix(), []);
   const transitions = useLiveQuery(() => getTransitionCounts(), []);
 

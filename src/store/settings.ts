@@ -23,9 +23,23 @@ export const DEFAULT_SETTINGS: Settings = {
   categories: DEFAULT_CATEGORIES,
 };
 
+/**
+ * 读设置。对旧版存储（无 icon/color）做迁移补全：
+ * 按内置同名分类补回 icon/color，避免「全图钉」。统一在此处迁移，
+ * 所有读取（CategoryManager、getCategories、采集过滤等）都拿到完整数据。
+ */
 export async function getSettings(): Promise<Settings> {
   const { [KEY]: stored } = await chrome.storage.local.get(KEY);
-  return { ...DEFAULT_SETTINGS, ...(stored ?? {}) };
+  const merged: Settings = { ...DEFAULT_SETTINGS, ...(stored ?? {}) };
+  merged.categories = (merged.categories ?? DEFAULT_CATEGORIES).map((c) => {
+    const def = DEFAULT_CATEGORIES.find((d) => d.name === c.name);
+    return {
+      ...c,
+      icon: c.icon ?? def?.icon ?? DEFAULT_CATEGORY_ICON,
+      color: c.color ?? def?.color ?? DEFAULT_CATEGORY_COLOR,
+    };
+  });
+  return merged;
 }
 
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {
@@ -37,21 +51,8 @@ export async function getBlacklist(): Promise<string[]> {
   return (await getSettings()).blacklist;
 }
 
-/**
- * 取分类规则。对旧版存储（无 icon/color）做迁移补全：
- * 按内置同名分类补回 icon/color，避免"全图钉"。
- */
 export async function getCategories(): Promise<CategoryDef[]> {
-  const s = await getSettings();
-  const cats = s.categories ?? DEFAULT_CATEGORIES;
-  return cats.map((c) => {
-    const def = DEFAULT_CATEGORIES.find((d) => d.name === c.name);
-    return {
-      ...c,
-      icon: c.icon ?? def?.icon ?? DEFAULT_CATEGORY_ICON,
-      color: c.color ?? def?.color ?? DEFAULT_CATEGORY_COLOR,
-    };
-  });
+  return (await getSettings()).categories;
 }
 
 export async function saveCategories(categories: CategoryDef[]): Promise<void> {
