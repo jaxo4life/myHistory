@@ -1,5 +1,6 @@
 import { db } from './database';
 import type { Visit, NewVisit } from '../types/visit';
+import { classifyDomain } from '../lib/categories';
 
 /** 写入一条访问记录，返回自增 id。 */
 export async function addVisit(visit: NewVisit): Promise<number> {
@@ -14,7 +15,7 @@ export async function getByDayKey(dayKey: string): Promise<Visit[]> {
 
 /**
  * 取 [start, end) 时间范围内，每个 dayKey 的记录数。
- * 用于日历点亮圆点（与可选热力色阶）。
+ * 用于日历点亮圆点。
  */
 export async function getDayCountsInRange(
   startMs: number,
@@ -34,12 +35,13 @@ export async function deleteVisit(id: number): Promise<void> {
 }
 
 /**
- * 跨全部历史搜索：关键词匹配 title/url/domain，可选域名/时间范围过滤。
- * 结果按访问时间倒序。阶段②先用全表内存过滤（数据量小），阶段④再优化索引。
+ * 跨全部历史搜索：关键词匹配 title/url/domain，可选域名/类别/时间范围过滤。
+ * 结果按访问时间倒序。阶段②先用全表内存过滤，阶段④再优化索引。
  */
 export async function searchVisits(opts: {
   query: string;
   domain?: string;
+  category?: string;
   startDate?: number;
   endDate?: number;
 }): Promise<Visit[]> {
@@ -56,6 +58,9 @@ export async function searchVisits(opts: {
   }
   if (d) {
     rows = rows.filter((v) => v.domain.toLowerCase().includes(d));
+  }
+  if (opts.category) {
+    rows = rows.filter((v) => classifyDomain(v.domain) === opts.category);
   }
   if (opts.startDate) rows = rows.filter((v) => v.visitTime >= opts.startDate!);
   if (opts.endDate) rows = rows.filter((v) => v.visitTime < opts.endDate!);
@@ -121,4 +126,17 @@ export async function getTotalStats(): Promise<{ total: number; domains: number 
   const rows = await db.visits.toArray();
   const domains = new Set(rows.map((r) => r.domain));
   return { total: rows.length, domains: domains.size };
+}
+
+/** 按自动分类统计访问数，返回 [{category, count}] 按次数倒序。 */
+export async function getCategoryCounts(): Promise<{ category: string; count: number }[]> {
+  const rows = await db.visits.toArray();
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    const c = classifyDomain(r.domain);
+    map.set(c, (map.get(c) ?? 0) + 1);
+  }
+  return [...map.entries()]
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
 }

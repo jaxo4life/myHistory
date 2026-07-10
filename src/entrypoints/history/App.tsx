@@ -3,6 +3,7 @@ import { Calendar } from '../../components/Calendar';
 import { HistoryList } from '../../components/HistoryList';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { DomainStats } from '../../components/DomainStats';
+import { CategoryStats } from '../../components/CategoryStats';
 import { AnalyticsView } from '../../components/AnalyticsView';
 import { getByDayKey, searchVisits, deleteVisits, clearAllVisits } from '../../db/queries';
 import { getDayKey } from '../../lib/url-utils';
@@ -18,6 +19,7 @@ export function App() {
   const [selectedDayKey, setSelectedDayKey] = useState<string>(getDayKey(Date.now()));
   const [searchQuery, setSearchQuery] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
@@ -26,12 +28,12 @@ export function App() {
   }, []);
 
   const visits = useLiveQuery(() => getByDayKey(selectedDayKey), [selectedDayKey]);
-  const showSearch = searchQuery.trim() !== '' || domainFilter.trim() !== '';
+  const hasFilter = searchQuery.trim() !== '' || domainFilter.trim() !== '' || categoryFilter !== '';
   const searchResults = useLiveQuery(
-    () => searchVisits({ query: searchQuery, domain: domainFilter }),
-    [searchQuery, domainFilter],
+    () => searchVisits({ query: searchQuery, domain: domainFilter, category: categoryFilter }),
+    [searchQuery, domainFilter, categoryFilter],
   );
-  const listVisits = showSearch ? searchResults : visits;
+  const listVisits = hasFilter ? searchResults : visits;
 
   function toggleSelect(id: number) {
     setSelectedIds((prev) => {
@@ -57,14 +59,14 @@ export function App() {
 
   function exportCurrent(format: 'csv' | 'json') {
     const data = listVisits ?? [];
-    const name = showSearch ? 'search' : selectedDayKey;
+    const name = hasFilter ? 'search' : selectedDayKey;
     if (format === 'csv') downloadText(`history-${name}.csv`, visitsToCSV(data), 'text/csv');
     else downloadText(`history-${name}.json`, visitsToJSON(data), 'application/json');
   }
 
   if (!settings) return <div className="p-4 text-muted">加载中…</div>;
 
-  const tabBtn = (v: View, label: string) =>
+  const tabBtn = (v: View) =>
     `rounded px-3 py-1 text-sm ${view === v ? 'bg-accent text-white' : 'bg-card text-fg'}`;
 
   return (
@@ -73,10 +75,10 @@ export function App() {
         <div className="flex items-center gap-4">
           <span className="text-lg font-semibold">Chrome History Plus</span>
           <div className="flex gap-1">
-            <button onClick={() => setView('history')} className={tabBtn('history', '历史')}>
+            <button onClick={() => setView('history')} className={tabBtn('history')}>
               历史
             </button>
-            <button onClick={() => setView('analytics')} className={tabBtn('analytics', '分析')}>
+            <button onClick={() => setView('analytics')} className={tabBtn('analytics')}>
               分析
             </button>
           </div>
@@ -131,6 +133,14 @@ export function App() {
                 placeholder="域名过滤"
                 className="w-28 rounded bg-card px-3 py-1.5 text-sm text-fg outline-none ring-1 ring-border focus:ring-accent"
               />
+              {categoryFilter && (
+                <button
+                  onClick={() => setCategoryFilter('')}
+                  className="rounded bg-accent/20 px-2 py-1 text-xs text-accent"
+                >
+                  类别: {categoryFilter} ✕
+                </button>
+              )}
               {selectionMode ? (
                 <>
                   <span className="text-xs text-muted">已选 {selectedIds.size}</span>
@@ -161,7 +171,7 @@ export function App() {
               )}
             </div>
             <div className="mb-3 text-sm text-muted">
-              {showSearch ? `搜索结果：${listVisits?.length ?? 0} 条` : `已选：${selectedDayKey}`}
+              {hasFilter ? `结果：${listVisits?.length ?? 0} 条` : `已选：${selectedDayKey}`}
             </div>
             <HistoryList
               visits={listVisits}
@@ -170,9 +180,11 @@ export function App() {
               onToggleSelect={toggleSelect}
             />
           </main>
-          {/* 右栏：最常访问 + 清空 */}
+          {/* 右栏：分类 + 最常访问 + 清空 */}
           <aside className="no-scrollbar flex w-1/4 flex-col overflow-y-auto border-l border-border p-4">
-            <div className="mb-2 text-sm font-semibold text-fg">最常访问</div>
+            <div className="mb-1 text-sm font-semibold text-fg">分类</div>
+            <CategoryStats onPick={setCategoryFilter} />
+            <div className="mb-1 mt-4 text-sm font-semibold text-fg">最常访问</div>
             <div className="flex-1">
               <DomainStats onPick={setDomainFilter} />
             </div>
