@@ -88,6 +88,11 @@ export async function clearAllVisits(): Promise<void> {
   await db.visits.clear();
 }
 
+/** 取全部访问记录（导出全部用）。 */
+export async function getAllVisits(): Promise<Visit[]> {
+  return db.visits.toArray();
+}
+
 /** 按域名删除所有记录。 */
 export async function deleteByDomain(domain: string): Promise<void> {
   await db.visits.where('domain').equals(domain).delete();

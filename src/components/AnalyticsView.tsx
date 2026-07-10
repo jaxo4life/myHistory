@@ -20,7 +20,6 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { CategoryManager } from './CategoryManager';
 
 const MUTED = '#8E8E8E';
 const TREND = '#3B82F6';
@@ -312,7 +311,6 @@ export function AnalyticsView() {
         </div>
       </div>
 
-      <CategoryManager />
     </div>
   );
 }

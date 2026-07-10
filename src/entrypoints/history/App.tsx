@@ -6,13 +6,13 @@ import { DomainStats } from '../../components/DomainStats';
 import { CategoryStats } from '../../components/CategoryStats';
 import { TagStats } from '../../components/TagStats';
 import { AnalyticsView } from '../../components/AnalyticsView';
-import { getByDayKey, searchVisits, deleteVisits, clearAllVisits } from '../../db/queries';
+import { ManageView } from '../../components/ManageView';
+import { getByDayKey, searchVisits, deleteVisits } from '../../db/queries';
 import { getDayKey } from '../../lib/url-utils';
-import { visitsToCSV, visitsToJSON, downloadText } from '../../lib/exporter';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getSettings, type Settings } from '../../store/settings';
 
-type View = 'history' | 'analytics';
+type View = 'history' | 'analytics' | 'manage';
 
 export function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -24,6 +24,7 @@ export function App() {
   const [tagFilter, setTagFilter] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  // 分类规则存在 chrome.storage，liveQuery 默认只监听 db；用 version 在 storage 变化时驱动重算
   const [settingsVersion, setSettingsVersion] = useState(0);
 
   useEffect(() => {
@@ -38,18 +39,9 @@ export function App() {
 
   const visits = useLiveQuery(() => getByDayKey(selectedDayKey), [selectedDayKey]);
   const hasFilter =
-    searchQuery.trim() !== '' ||
-    domainFilter.trim() !== '' ||
-    categoryFilter !== '' ||
-    tagFilter !== '';
+    searchQuery.trim() !== '' || domainFilter.trim() !== '' || categoryFilter !== '' || tagFilter !== '';
   const searchResults = useLiveQuery(
-    () =>
-      searchVisits({
-        query: searchQuery,
-        domain: domainFilter,
-        category: categoryFilter,
-        tag: tagFilter,
-      }),
+    () => searchVisits({ query: searchQuery, domain: domainFilter, category: categoryFilter, tag: tagFilter }),
     [searchQuery, domainFilter, categoryFilter, tagFilter, settingsVersion],
   );
   const listVisits = hasFilter ? searchResults : visits;
@@ -70,19 +62,6 @@ export function App() {
     setSelectionMode(false);
   }
 
-  async function clearAll() {
-    if (!confirm('确定清空全部历史记录？此操作不可撤销。')) return;
-    await clearAllVisits();
-    setSelectedIds(new Set());
-  }
-
-  function exportCurrent(format: 'csv' | 'json') {
-    const data = listVisits ?? [];
-    const name = hasFilter ? 'search' : selectedDayKey;
-    if (format === 'csv') downloadText(`history-${name}.csv`, visitsToCSV(data), 'text/csv');
-    else downloadText(`history-${name}.json`, visitsToJSON(data), 'application/json');
-  }
-
   if (!settings) return <div className="p-4 text-muted">加载中…</div>;
 
   const tabBtn = (v: View) =>
@@ -100,33 +79,18 @@ export function App() {
             <button onClick={() => setView('analytics')} className={tabBtn('analytics')}>
               分析
             </button>
+            <button onClick={() => setView('manage')} className={tabBtn('manage')}>
+              管理
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {view === 'history' && (
-            <>
-              <button
-                onClick={() => exportCurrent('csv')}
-                title="导出当前列表为 CSV"
-                className="rounded bg-card px-2 py-1 text-xs text-fg"
-              >
-                导出 CSV
-              </button>
-              <button
-                onClick={() => exportCurrent('json')}
-                title="导出当前列表为 JSON"
-                className="rounded bg-card px-2 py-1 text-xs text-fg"
-              >
-                导出 JSON
-              </button>
-            </>
-          )}
-          <ThemeToggle />
-        </div>
+        <ThemeToggle />
       </header>
 
       {view === 'analytics' ? (
         <AnalyticsView />
+      ) : view === 'manage' ? (
+        <ManageView />
       ) : (
         <div className="flex flex-1 overflow-hidden">
           {/* 左栏：日历 */}
@@ -208,33 +172,16 @@ export function App() {
               onTagClick={setTagFilter}
             />
           </main>
-          {/* 右栏：分类 + 标签 + 最常访问 + 清空 */}
+          {/* 右栏：分类 + 标签 + 最常访问 */}
           <aside className="no-scrollbar flex w-1/4 flex-col overflow-y-auto border-l border-border p-4">
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-sm font-semibold text-fg">分类</span>
-              <button
-                onClick={() => setView('analytics')}
-                className="text-xs text-muted hover:text-fg"
-                title="在「分析」页管理分类"
-              >
-                管理
-              </button>
-            </div>
+            <div className="mb-1 text-sm font-semibold text-fg">分类</div>
             <CategoryStats onPick={setCategoryFilter} version={settingsVersion} />
-
             <div className="mb-1 mt-4 text-sm font-semibold text-fg">标签</div>
             <TagStats onPick={setTagFilter} version={settingsVersion} />
-
             <div className="mb-1 mt-4 text-sm font-semibold text-fg">最常访问</div>
             <div className="flex-1">
               <DomainStats onPick={setDomainFilter} limit={10} />
             </div>
-            <button
-              onClick={clearAll}
-              className="mt-4 w-full rounded bg-accent px-3 py-2 text-sm text-white hover:opacity-90"
-            >
-              清空全部历史
-            </button>
           </aside>
         </div>
       )}

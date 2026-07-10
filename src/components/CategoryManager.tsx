@@ -104,10 +104,12 @@ export function CategoryManager() {
           const isActive = editing === cat.name;
           const color = cat.color ?? '#6C5CE7';
           return (
-            <button
+            <div
               key={cat.name}
               onClick={() => beginEdit(cat)}
-              className="flex flex-col items-center gap-0.5 rounded-lg p-2 transition-opacity hover:opacity-80"
+              role="button"
+              tabIndex={0}
+              className="group relative flex cursor-pointer flex-col items-center gap-0.5 rounded-lg p-2 transition-opacity hover:opacity-80"
               style={{
                 backgroundColor: `${color}${isActive ? '33' : '14'}`,
                 boxShadow: isActive ? `0 0 0 2px ${color}` : undefined,
@@ -121,7 +123,17 @@ export function CategoryManager() {
               >
                 {cat.name}
               </span>
-            </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  remove(cat.name);
+                }}
+                className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-bg text-xs text-muted ring-1 ring-border hover:text-fg group-hover:flex"
+                title="删除分类"
+              >
+                ×
+              </button>
+            </div>
           );
         })}
       </div>
