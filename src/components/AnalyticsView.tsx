@@ -19,8 +19,12 @@ import {
 } from 'recharts';
 import { CategoryManager } from './CategoryManager';
 
-const ACCENT = '#6C5CE7';
 const MUTED = '#8E8E8E';
+// 数据可视化调色板（品牌紫保留给按钮/选中，图表用多彩）
+const TREND = '#3B82F6'; // 趋势：蓝
+const HOUR_BASE = 'rgba(108,92,231,0.35)'; // 时段常态：紫
+const HOUR_PEAK = '#F97316'; // 最忙时段：橙
+const KPI_COLORS = ['#6C5CE7', '#3B82F6', '#14B8A6', '#EC4899'];
 
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
@@ -36,15 +40,25 @@ function Kpi({
   label,
   value,
   hint,
+  color,
 }: {
   label: string;
   value: number | string;
   hint?: string;
+  color: string;
 }) {
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 p-5 ring-1 ring-accent/10">
+    <div
+      className="rounded-2xl p-5"
+      style={{
+        background: `linear-gradient(135deg, ${color}26, ${color}08)`,
+        boxShadow: `inset 0 0 0 1px ${color}26`,
+      }}
+    >
       <div className="text-sm text-muted">{label}</div>
-      <div className="mt-1 text-3xl font-bold tabular-nums text-fg">{value}</div>
+      <div className="mt-1 text-3xl font-bold tabular-nums" style={{ color }}>
+        {value}
+      </div>
       {hint && <div className="mt-1 text-xs text-muted">{hint}</div>}
     </div>
   );
@@ -60,14 +74,20 @@ export function AnalyticsView() {
   const peakHour = overview?.peakHour ?? -1;
   const maxCat = cats && cats.length > 0 ? cats[0].count : 1;
 
+  const kpis = [
+    { label: '总访问', value: overview?.total ?? '…', hint: '全部累计', color: KPI_COLORS[0] },
+    { label: '域名数', value: overview?.domains ?? '…', hint: '不同站点', color: KPI_COLORS[1] },
+    { label: '今日', value: overview?.today ?? '…', hint: '本日访问', color: KPI_COLORS[2] },
+    { label: '本周', value: overview?.week ?? '…', hint: '近 7 天', color: KPI_COLORS[3] },
+  ];
+
   return (
     <div className="no-scrollbar h-full overflow-y-auto p-6">
       {/* KPI */}
       <div className="mb-6 grid grid-cols-4 gap-4">
-        <Kpi label="总访问" value={overview?.total ?? '…'} hint="全部累计" />
-        <Kpi label="域名数" value={overview?.domains ?? '…'} hint="不同站点" />
-        <Kpi label="今日" value={overview?.today ?? '…'} hint="本日访问" />
-        <Kpi label="本周" value={overview?.week ?? '…'} hint="近 7 天" />
+        {kpis.map((k) => (
+          <Kpi key={k.label} {...k} />
+        ))}
       </div>
 
       {/* 访问趋势 */}
@@ -83,8 +103,8 @@ export function AnalyticsView() {
             <AreaChart data={daily ?? []}>
               <defs>
                 <linearGradient id="gradTrend" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={ACCENT} stopOpacity={0.5} />
-                  <stop offset="100%" stopColor={ACCENT} stopOpacity={0.02} />
+                  <stop offset="0%" stopColor={TREND} stopOpacity={0.45} />
+                  <stop offset="100%" stopColor={TREND} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <XAxis
@@ -104,7 +124,7 @@ export function AnalyticsView() {
               <Area
                 type="monotone"
                 dataKey="count"
-                stroke={ACCENT}
+                stroke={TREND}
                 strokeWidth={2}
                 fill="url(#gradTrend)"
               />
@@ -118,7 +138,7 @@ export function AnalyticsView() {
         <div className="rounded-2xl bg-card p-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-semibold text-fg">活跃时段</div>
-            <div className="text-xs text-muted">
+            <div className="text-xs" style={{ color: HOUR_PEAK }}>
               {peakHour >= 0 ? `最忙 ${peakHour}:00–${peakHour + 1}:00` : ''}
             </div>
           </div>
@@ -144,10 +164,7 @@ export function AnalyticsView() {
                 />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {(hourly ?? []).map((h) => (
-                    <Cell
-                      key={h.hour}
-                      fill={h.hour === peakHour ? ACCENT : 'rgba(108,92,231,0.35)'}
-                    />
+                    <Cell key={h.hour} fill={h.hour === peakHour ? HOUR_PEAK : HOUR_BASE} />
                   ))}
                 </Bar>
               </BarChart>
@@ -174,15 +191,24 @@ export function AnalyticsView() {
       <div className="mb-6 rounded-2xl bg-card p-5">
         <div className="mb-3 text-sm font-semibold text-fg">分类分布</div>
         <div className="grid grid-cols-4 gap-3">
-          {(cats ?? []).map(({ category, count, icon }) => (
-            <div key={category} className="rounded-xl bg-bg p-3 text-center">
+          {(cats ?? []).map(({ category, count, icon, color }) => (
+            <div
+              key={category}
+              className="rounded-xl p-3 text-center"
+              style={{ backgroundColor: `${color}14` }}
+            >
               <div className="text-2xl">{icon}</div>
               <div className="mt-1 truncate text-sm text-fg">{category}</div>
-              <div className="text-xs text-muted">{count}</div>
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-border">
+              <div className="text-xs font-semibold" style={{ color }}>
+                {count}
+              </div>
+              <div
+                className="mt-2 h-1 overflow-hidden rounded-full"
+                style={{ backgroundColor: `${color}33` }}
+              >
                 <div
-                  className="h-full bg-accent"
-                  style={{ width: `${(count / maxCat) * 100}%` }}
+                  className="h-full"
+                  style={{ width: `${(count / maxCat) * 100}%`, backgroundColor: color }}
                 />
               </div>
             </div>

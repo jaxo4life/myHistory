@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getCategoryCounts } from '../db/queries';
 
-/** 右栏：分类卡片 tag 网格，点击某类别联动中栏过滤。version 变化时重新查询。 */
+/** 右栏：分类彩色卡片 tag 网格，点击某类别联动中栏过滤。 */
 export function CategoryStats({
   onPick,
   version,
@@ -16,16 +16,19 @@ export function CategoryStats({
 
   return (
     <div className="grid grid-cols-2 gap-1.5">
-      {cats.map(({ category, count, icon }) => (
+      {cats.map(({ category, count, icon, color }) => (
         <button
           key={category}
           onClick={() => onPick(category)}
-          className="flex items-center gap-1.5 rounded-lg bg-card px-2 py-1.5 text-left text-xs hover:bg-border"
+          className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs transition-opacity hover:opacity-80"
+          style={{ backgroundColor: `${color}1f` }}
           title={`按「${category}」过滤`}
         >
           <span className="text-sm">{icon}</span>
           <span className="min-w-0 flex-1 truncate text-fg">{category}</span>
-          <span className="shrink-0 text-muted">{count}</span>
+          <span className="shrink-0 font-semibold" style={{ color }}>
+            {count}
+          </span>
         </button>
       ))}
     </div>

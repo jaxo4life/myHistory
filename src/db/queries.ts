@@ -1,6 +1,6 @@
 import { db } from './database';
 import type { Visit, NewVisit } from '../types/visit';
-import { classifyDomain, DEFAULT_CATEGORY_ICON } from '../lib/categories';
+import { classifyDomain, DEFAULT_CATEGORY_ICON, DEFAULT_CATEGORY_COLOR } from '../lib/categories';
 import { getCategories } from '../store/settings';
 import { getDayKey } from '../lib/url-utils';
 
@@ -157,12 +157,16 @@ export async function getCategoryCounts(): Promise<
     const c = classifyDomain(r.domain, rules);
     map.set(c, (map.get(c) ?? 0) + 1);
   }
-  return [...map.entries()]
-    .map(([category, count]) => ({
-      category,
-      count,
-      icon: rules.find((r) => r.name === category)?.icon ?? DEFAULT_CATEGORY_ICON,
-    }))
+  return [...map.entries]()
+    .map(([category, count]) => {
+      const def = rules.find((r) => r.name === category);
+      return {
+        category,
+        count,
+        icon: def?.icon ?? DEFAULT_CATEGORY_ICON,
+        color: def?.color ?? DEFAULT_CATEGORY_COLOR,
+      };
+    })
     .sort((a, b) => b.count - a.count);
 }
 
