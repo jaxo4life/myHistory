@@ -19,11 +19,11 @@ export async function getByDayKey(dayKey: string): Promise<Visit[]> {
 export async function getDayCountsInRange(
   startMs: number,
   endMs: number,
-): Promise<Map<string, number>> {
+): Promise<Record<string, number>> {
   const rows = await db.visits.where('visitTime').between(startMs, endMs, true, false).toArray();
-  const counts = new Map<string, number>();
+  const counts: Record<string, number> = {};
   for (const r of rows) {
-    counts.set(r.dayKey, (counts.get(r.dayKey) ?? 0) + 1);
+    counts[r.dayKey] = (counts[r.dayKey] ?? 0) + 1;
   }
   return counts;
 }

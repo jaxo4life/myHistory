@@ -57,7 +57,7 @@ export function Calendar({ weekStart, selectedDayKey, onSelect }: Props) {
   }
 
   function dot(cell: CalendarDay) {
-    const c = counts?.get(cell.dayKey) ?? 0;
+    const c = counts?.[cell.dayKey] ?? 0;
     if (c === 0) return null;
     // dot 模式统一圆点；heatmap 模式按访问量映射透明度
     return (
