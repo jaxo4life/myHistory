@@ -1,34 +1,19 @@
-import { useState } from 'react';
-import reactLogo from '@/assets/react.svg';
-import wxtLogo from '/wxt.svg';
-import './App.css';
-
-function App() {
-  const [count, setCount] = useState(0);
+export function App() {
+  function openHistory() {
+    chrome.tabs.create({ url: chrome.runtime.getURL('/history.html') });
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://wxt.dev" target="_blank">
-          <img src={wxtLogo} className="logo" alt="WXT logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>WXT + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the WXT and React logos to learn more
-      </p>
-    </>
+    <div className="flex w-72 flex-col gap-3 bg-bg p-4 text-fg">
+      <h1 className="text-base font-semibold">Chrome History Plus</h1>
+      <p className="text-xs text-muted">本地、私密、开源的浏览历史管理。</p>
+      <button
+        onClick={openHistory}
+        className="rounded bg-accent px-3 py-2 text-sm text-white hover:opacity-90"
+      >
+        打开完整历史
+      </button>
+    </div>
   );
 }
 
