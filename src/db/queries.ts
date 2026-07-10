@@ -124,11 +124,11 @@ export async function getHourlyDistribution(): Promise<{ hour: number; count: nu
   return counts.map((count, hour) => ({ hour, count }));
 }
 
-/** 总统计：总访问数 + 不同域名数。 */
+/** 总统计：总访问数 + 不同域名数（用 count/uniqueKeys 避免全表加载）。 */
 export async function getTotalStats(): Promise<{ total: number; domains: number }> {
-  const rows = await db.visits.toArray();
-  const domains = new Set(rows.map((r) => r.domain));
-  return { total: rows.length, domains: domains.size };
+  const total = await db.visits.count();
+  const domainKeys = await db.visits.orderBy('domain').uniqueKeys();
+  return { total, domains: domainKeys.length };
 }
 
 /** 按当前分类规则统计访问数，返回 [{category, count}] 按次数倒序。 */

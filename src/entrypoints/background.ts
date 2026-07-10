@@ -4,8 +4,12 @@ import { addVisit } from '../db/queries';
 import { getBlacklist } from '../store/settings';
 
 const BACKFILL_FLAG = 'history-plus:backfilled';
+// 同 tab 同 URL 在此窗口内的重复 onCommitted 视为一次（防 redirect/瞬时重复）
+const DEDUP_MS = 1500;
 
 export default defineBackground(() => {
+  const recentNavs = new Map<string, number>();
+
   // 点击扩展图标直接打开历史主界面（无 popup 中转）
   chrome.action.onClicked.addListener(() => {
     chrome.tabs.create({ url: chrome.runtime.getURL('/history.html') });
@@ -19,6 +23,21 @@ export default defineBackground(() => {
   // 监听每次导航提交
   chrome.webNavigation.onCommitted.addListener(async (details) => {
     if (details.frameId !== 0) return; // 仅主框架
+
+    // 去重：极短时间内同 tab 同 URL 不重复记录
+    const navKey = `${details.tabId}:${details.url}`;
+    const now = Date.now();
+    const last = recentNavs.get(navKey);
+    if (last && now - last < DEDUP_MS) {
+      recentNavs.set(navKey, now);
+      return;
+    }
+    recentNavs.set(navKey, now);
+    if (recentNavs.size > 500) {
+      for (const [k, t] of recentNavs) {
+        if (now - t > DEDUP_MS * 10) recentNavs.delete(k);
+      }
+    }
 
     const incognito = await isIncognito(details.tabId);
     const domain = getDomain(details.url);
