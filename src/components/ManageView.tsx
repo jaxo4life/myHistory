@@ -45,7 +45,7 @@ export function ManageView() {
             </button>
             <button
               onClick={() => exportAll('json')}
-              className="rounded bg-card px-3 py-1.5 text-sm text-fg hover:bg-border"
+              className="rounded bg-bg px-3 py-1.5 text-sm text-fg ring-1 ring-border hover:bg-border"
             >
               导出 JSON
             </button>
