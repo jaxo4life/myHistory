@@ -8,6 +8,9 @@ export default defineConfig({
     name: 'Chrome History Plus',
     description: '开源、纯本地、可审计的浏览历史管理扩展',
     version: '0.1.0',
+    action: {
+      default_title: 'Chrome History Plus',
+    },
     permissions: ['webNavigation', 'tabs', 'history', 'storage'],
     host_permissions: ['<all_urls>'],
   },
