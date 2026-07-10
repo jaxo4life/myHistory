@@ -70,7 +70,7 @@ export function App() {
   return (
     <div className="flex h-screen flex-col bg-bg text-fg">
       <header className="flex items-center justify-between border-b border-border p-3">
-        <div className="flex items-center gap-4">
+        <div className="flex items-end gap-4">
           <img src="/icon/512.png" alt="myHistory" className="h-16 w-16" />
           <div className="flex gap-1">
             <button onClick={() => setView('history')} className={tabBtn('history')}>
