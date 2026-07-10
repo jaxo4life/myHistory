@@ -122,7 +122,7 @@ export async function getHourlyDistribution(): Promise<{ hour: number; count: nu
   return counts.map((count, hour) => ({ hour, count }));
 }
 
-/** 概览指标：总量/域名/今日/本周/日均/最忙时段。 */
+/** 概览指标：总量/域名/今日/本周/日均/最忙时段/最早记录。 */
 export async function getOverview(): Promise<{
   total: number;
   domains: number;
@@ -130,6 +130,8 @@ export async function getOverview(): Promise<{
   week: number;
   dailyAvg: number;
   peakHour: number;
+  earliest: number;
+  latest: number;
 }> {
   const rows = await db.visits.toArray();
   const total = rows.length;
@@ -141,9 +143,24 @@ export async function getOverview(): Promise<{
   const days = new Set(rows.map((r) => r.dayKey)).size;
   const dailyAvg = days > 0 ? Math.round(total / days) : 0;
   const hours = new Array(24).fill(0);
-  for (const r of rows) hours[new Date(r.visitTime).getHours()]++;
+  let earliest = Infinity;
+  let latest = 0;
+  for (const r of rows) {
+    hours[new Date(r.visitTime).getHours()]++;
+    if (r.visitTime < earliest) earliest = r.visitTime;
+    if (r.visitTime > latest) latest = r.visitTime;
+  }
   const peakHour = total > 0 ? hours.indexOf(Math.max(...hours)) : -1;
-  return { total, domains, today, week, dailyAvg, peakHour };
+  return {
+    total,
+    domains,
+    today,
+    week,
+    dailyAvg,
+    peakHour,
+    earliest: total > 0 ? earliest : 0,
+    latest,
+  };
 }
 
 /** 按当前分类规则统计访问数，含 icon，按次数倒序。 */

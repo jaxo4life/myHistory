@@ -16,7 +16,7 @@ interface FormState {
 
 const EMPTY: FormState = { name: '', icon: '📌', color: '#6C5CE7', patterns: '' };
 
-/** 分类管理：卡片式展示 + 编辑（名称/图标/颜色/规则） + 新增。 */
+/** 分类管理：紧凑小卡片网格 + 点击编辑 + 新增。 */
 export function CategoryManager() {
   const [settings, setSettings] = useState<Settings | null>(null);
   // null=浏览态；'__new__'=新增；其他=编辑该名称
@@ -76,6 +76,7 @@ export function CategoryManager() {
     const categories = settings.categories.filter((c) => c.name !== name);
     await saveCategories(categories);
     setSettings({ ...settings, categories });
+    setEditing(null);
   }
 
   async function reset() {
@@ -88,13 +89,15 @@ export function CategoryManager() {
   return (
     <div className="rounded-2xl bg-card p-5">
       <div className="mb-3 flex items-center justify-between">
-        <div className="text-sm font-semibold text-fg">分类管理</div>
+        <div className="text-sm font-semibold text-fg">
+          分类管理 <span className="text-xs font-normal text-muted">（点击卡片编辑）</span>
+        </div>
         <button onClick={reset} className="text-xs text-muted hover:text-fg">
           恢复默认
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-6 gap-1.5">
         {settings.categories.map((cat) =>
           editing === cat.name ? (
             <EditForm
@@ -103,39 +106,25 @@ export function CategoryManager() {
               setForm={setForm}
               isNew={false}
               onSave={saveForm}
+              onDelete={() => remove(cat.name)}
               onCancel={() => setEditing(null)}
             />
           ) : (
-            <div
+            <button
               key={cat.name}
-              className="rounded-xl p-3"
+              onClick={() => beginEdit(cat)}
+              className="flex flex-col items-center gap-0.5 rounded-lg p-2 transition-opacity hover:opacity-80"
               style={{ backgroundColor: `${cat.color ?? '#6C5CE7'}14` }}
+              title={`${cat.name} · ${cat.patterns.length} 条规则 · 点击编辑`}
             >
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{cat.icon ?? '📌'}</span>
-                <span
-                  className="min-w-0 flex-1 truncate font-medium"
-                  style={{ color: cat.color }}
-                >
-                  {cat.name}
-                </span>
-              </div>
-              <div className="mt-1 text-xs text-muted">{cat.patterns.length} 条规则</div>
-              <div className="mt-2 flex gap-1">
-                <button
-                  onClick={() => beginEdit(cat)}
-                  className="rounded bg-bg px-2 py-0.5 text-xs text-fg hover:opacity-80"
-                >
-                  编辑
-                </button>
-                <button
-                  onClick={() => remove(cat.name)}
-                  className="rounded bg-bg px-2 py-0.5 text-xs text-muted hover:text-fg"
-                >
-                  删除
-                </button>
-              </div>
-            </div>
+              <span className="text-lg leading-none">{cat.icon ?? '📌'}</span>
+              <span
+                className="w-full truncate text-center text-[11px] leading-tight"
+                style={{ color: cat.color }}
+              >
+                {cat.name}
+              </span>
+            </button>
           ),
         )}
 
@@ -167,16 +156,18 @@ function EditForm({
   setForm,
   isNew,
   onSave,
+  onDelete,
   onCancel,
 }: {
   form: FormState;
   setForm: (f: FormState) => void;
   isNew: boolean;
   onSave: () => void;
+  onDelete?: () => void;
   onCancel: () => void;
 }) {
   return (
-    <div className="col-span-2 rounded-xl bg-bg p-3 ring-1 ring-border">
+    <div className="col-span-6 rounded-xl bg-bg p-3 ring-1 ring-border">
       <div className="flex gap-2">
         <input
           value={form.name}
@@ -233,12 +224,17 @@ function EditForm({
         >
           {isNew ? '添加' : '保存'}
         </button>
-        <button
-          onClick={onCancel}
-          className="rounded bg-card px-3 py-1 text-sm text-fg"
-        >
+        <button onClick={onCancel} className="rounded bg-card px-3 py-1 text-sm text-fg">
           取消
         </button>
+        {!isNew && onDelete && (
+          <button
+            onClick={onDelete}
+            className="ml-auto rounded px-3 py-1 text-sm text-muted hover:text-fg"
+          >
+            删除分类
+          </button>
+        )}
       </div>
     </div>
   );

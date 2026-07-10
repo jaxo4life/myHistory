@@ -45,6 +45,13 @@ const TRANSITION_LABELS: Record<string, string> = {
   start_page: '起始页',
 };
 
+function formatDate(ms: number): string {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate(),
+  ).padStart(2, '0')}`;
+}
+
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -118,7 +125,8 @@ export function AnalyticsView() {
         <div className="mb-3 flex items-center justify-between">
           <div className="text-sm font-semibold text-fg">访问趋势</div>
           <div className="text-xs text-muted">
-            近 30 天 · 日均 {overview?.dailyAvg ?? '…'} 次
+            {overview?.earliest ? `数据自 ${formatDate(overview.earliest)}` : '近 30 天'}
+            {' · '}日均 {overview?.dailyAvg ?? '…'} 次
           </div>
         </div>
         <div className="h-56">
