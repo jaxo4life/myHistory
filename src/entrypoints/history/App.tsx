@@ -22,16 +22,25 @@ export function App() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  // 设置（含自定义分类）变化时递增，驱动依赖分类的 liveQuery 重新查询
+  const [settingsVersion, setSettingsVersion] = useState(0);
 
   useEffect(() => {
     getSettings().then(setSettings);
   }, []);
 
+  useEffect(() => {
+    const handler = () => setSettingsVersion((v) => v + 1);
+    chrome.storage.onChanged.addListener(handler);
+    return () => chrome.storage.onChanged.removeListener(handler);
+  }, []);
+
   const visits = useLiveQuery(() => getByDayKey(selectedDayKey), [selectedDayKey]);
-  const hasFilter = searchQuery.trim() !== '' || domainFilter.trim() !== '' || categoryFilter !== '';
+  const hasFilter =
+    searchQuery.trim() !== '' || domainFilter.trim() !== '' || categoryFilter !== '';
   const searchResults = useLiveQuery(
     () => searchVisits({ query: searchQuery, domain: domainFilter, category: categoryFilter }),
-    [searchQuery, domainFilter, categoryFilter],
+    [searchQuery, domainFilter, categoryFilter, settingsVersion],
   );
   const listVisits = hasFilter ? searchResults : visits;
 
@@ -182,8 +191,17 @@ export function App() {
           </main>
           {/* 右栏：分类 + 最常访问 + 清空 */}
           <aside className="no-scrollbar flex w-1/4 flex-col overflow-y-auto border-l border-border p-4">
-            <div className="mb-1 text-sm font-semibold text-fg">分类</div>
-            <CategoryStats onPick={setCategoryFilter} />
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-sm font-semibold text-fg">分类</span>
+              <button
+                onClick={() => setView('analytics')}
+                className="text-xs text-muted hover:text-fg"
+                title="在「分析」页管理分类"
+              >
+                管理
+              </button>
+            </div>
+            <CategoryStats onPick={setCategoryFilter} version={settingsVersion} />
             <div className="mb-1 mt-4 text-sm font-semibold text-fg">最常访问</div>
             <div className="flex-1">
               <DomainStats onPick={setDomainFilter} />

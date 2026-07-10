@@ -1,6 +1,7 @@
 import { db } from './database';
 import type { Visit, NewVisit } from '../types/visit';
 import { classifyDomain } from '../lib/categories';
+import { getCategories } from '../store/settings';
 
 /** 写入一条访问记录，返回自增 id。 */
 export async function addVisit(visit: NewVisit): Promise<number> {
@@ -13,10 +14,7 @@ export async function getByDayKey(dayKey: string): Promise<Visit[]> {
   return rows.sort((a, b) => b.visitTime - a.visitTime);
 }
 
-/**
- * 取 [start, end) 时间范围内，每个 dayKey 的记录数。
- * 用于日历点亮圆点。
- */
+/** 取 [start, end) 时间范围内，每个 dayKey 的记录数（日历点亮用）。 */
 export async function getDayCountsInRange(
   startMs: number,
   endMs: number,
@@ -36,7 +34,7 @@ export async function deleteVisit(id: number): Promise<void> {
 
 /**
  * 跨全部历史搜索：关键词匹配 title/url/domain，可选域名/类别/时间范围过滤。
- * 结果按访问时间倒序。阶段②先用全表内存过滤，阶段④再优化索引。
+ * 类别过滤用用户自定义分类规则。结果按访问时间倒序。
  */
 export async function searchVisits(opts: {
   query: string;
@@ -60,14 +58,15 @@ export async function searchVisits(opts: {
     rows = rows.filter((v) => v.domain.toLowerCase().includes(d));
   }
   if (opts.category) {
-    rows = rows.filter((v) => classifyDomain(v.domain) === opts.category);
+    const rules = await getCategories();
+    rows = rows.filter((v) => classifyDomain(v.domain, rules) === opts.category);
   }
   if (opts.startDate) rows = rows.filter((v) => v.visitTime >= opts.startDate!);
   if (opts.endDate) rows = rows.filter((v) => v.visitTime < opts.endDate!);
   return rows.sort((a, b) => b.visitTime - a.visitTime);
 }
 
-/** 统计访问次数最多的域名，返回 [{domain, count}] 按次数倒序，取 limit 条。 */
+/** 统计访问次数最多的域名，返回 [{domain, count}] 按次数倒序。 */
 export async function getTopDomains(
   limit = 30,
 ): Promise<{ domain: string; count: number }[]> {
@@ -128,12 +127,13 @@ export async function getTotalStats(): Promise<{ total: number; domains: number 
   return { total: rows.length, domains: domains.size };
 }
 
-/** 按自动分类统计访问数，返回 [{category, count}] 按次数倒序。 */
+/** 按当前分类规则统计访问数，返回 [{category, count}] 按次数倒序。 */
 export async function getCategoryCounts(): Promise<{ category: string; count: number }[]> {
+  const rules = await getCategories();
   const rows = await db.visits.toArray();
   const map = new Map<string, number>();
   for (const r of rows) {
-    const c = classifyDomain(r.domain);
+    const c = classifyDomain(r.domain, rules);
     map.set(c, (map.get(c) ?? 0) + 1);
   }
   return [...map.entries()]

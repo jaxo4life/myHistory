@@ -1,9 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getCategoryCounts } from '../db/queries';
 
-/** 右栏：按自动分类统计，点击某类别回调（联动中栏过滤）。 */
-export function CategoryStats({ onPick }: { onPick: (category: string) => void }) {
-  const cats = useLiveQuery(() => getCategoryCounts(), []);
+/** 右栏：按当前分类规则统计，点击某类别回调（联动中栏过滤）。version 变化时重新查询。 */
+export function CategoryStats({
+  onPick,
+  version,
+}: {
+  onPick: (category: string) => void;
+  version: number;
+}) {
+  const cats = useLiveQuery(() => getCategoryCounts(), [version]);
 
   if (!cats) return <div className="text-sm text-muted">加载中…</div>;
   if (cats.length === 0) return <div className="text-sm text-muted">暂无数据</div>;

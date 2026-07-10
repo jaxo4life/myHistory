@@ -6,6 +6,7 @@ import {
   getTopDomains,
 } from '../db/queries';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { CategoryManager } from './CategoryManager';
 
 const ACCENT = '#6C5CE7';
 const MUTED = '#8E8E8E';
@@ -46,7 +47,7 @@ export function AnalyticsView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="mb-6 grid grid-cols-2 gap-4">
         <div className="rounded bg-card p-4">
           <div className="mb-2 text-sm font-semibold text-fg">时段分布（0-23 点）</div>
           <div className="h-40">
@@ -72,12 +73,12 @@ export function AnalyticsView() {
                 <span className="ml-2 shrink-0 text-muted">{count}</span>
               </div>
             ))}
-            {top && top.length === 0 && (
-              <div className="text-sm text-muted">暂无数据</div>
-            )}
+            {top && top.length === 0 && <div className="text-sm text-muted">暂无数据</div>}
           </div>
         </div>
       </div>
+
+      <CategoryManager />
     </div>
   );
 }

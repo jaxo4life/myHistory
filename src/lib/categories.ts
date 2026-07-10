@@ -4,11 +4,11 @@ export interface CategoryDef {
 }
 
 /**
- * 自动分类规则（按域名匹配，匹配顺序即优先级）。
- * 邮件类放在搜索前，确保 mail.google.com 归入"邮件"而非"搜索"。
+ * 内置默认分类规则（用户可在「分析」页自定义覆盖）。
+ * 匹配顺序即优先级；邮件类放在搜索前，确保 mail.google.com 归入"邮件"。
  * pattern 以 '.' 结尾表示前缀匹配（如 'news.'），否则按域名精确/子域名后缀匹配。
  */
-export const CATEGORIES: CategoryDef[] = [
+export const DEFAULT_CATEGORIES: CategoryDef[] = [
   { name: '社交', patterns: ['facebook.com', 'twitter.com', 'x.com', 'instagram.com', 'weibo.com', 't.me', 'linkedin.com', 'reddit.com', 'discord.com'] },
   { name: '视频', patterns: ['youtube.com', 'youtu.be', 'bilibili.com', 'netflix.com', 'vimeo.com', 'tiktok.com', 'douyin.com'] },
   { name: '购物', patterns: ['amazon.com', 'ebay.com', 'taobao.com', 'tmall.com', 'jd.com', 'aliexpress.com'] },
@@ -27,10 +27,10 @@ function matches(domain: string, pattern: string): boolean {
   return domain === pattern || domain.endsWith('.' + pattern);
 }
 
-/** 把域名归入某类别，未匹配返回 '其他'。 */
-export function classifyDomain(domain: string): string {
+/** 把域名按给定规则归入某类别，未匹配返回 '其他'。 */
+export function classifyDomain(domain: string, rules: CategoryDef[]): string {
   const d = domain.toLowerCase();
-  for (const cat of CATEGORIES) {
+  for (const cat of rules) {
     if (cat.patterns.some((p) => matches(d, p))) return cat.name;
   }
   return '其他';
