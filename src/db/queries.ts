@@ -91,3 +91,34 @@ export async function deleteByDomain(domain: string): Promise<void> {
 export async function deleteVisits(ids: number[]): Promise<void> {
   await db.visits.bulkDelete(ids);
 }
+
+/** 最近 days 天的每日访问数，按日期升序。 */
+export async function getDailyCounts(
+  days = 30,
+): Promise<{ dayKey: string; count: number }[]> {
+  const now = Date.now();
+  const start = now - days * 24 * 60 * 60 * 1000;
+  const rows = await db.visits.where('visitTime').between(start, now, true, false).toArray();
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    map.set(r.dayKey, (map.get(r.dayKey) ?? 0) + 1);
+  }
+  return [...map.entries()]
+    .map(([dayKey, count]) => ({ dayKey, count }))
+    .sort((a, b) => (a.dayKey < b.dayKey ? -1 : 1));
+}
+
+/** 按 0-23 小时的访问分布。 */
+export async function getHourlyDistribution(): Promise<{ hour: number; count: number }[]> {
+  const rows = await db.visits.toArray();
+  const counts = new Array(24).fill(0);
+  for (const r of rows) counts[new Date(r.visitTime).getHours()]++;
+  return counts.map((count, hour) => ({ hour, count }));
+}
+
+/** 总统计：总访问数 + 不同域名数。 */
+export async function getTotalStats(): Promise<{ total: number; domains: number }> {
+  const rows = await db.visits.toArray();
+  const domains = new Set(rows.map((r) => r.domain));
+  return { total: rows.length, domains: domains.size };
+}
