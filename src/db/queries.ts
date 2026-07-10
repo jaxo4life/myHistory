@@ -32,3 +32,57 @@ export async function getDayCountsInRange(
 export async function deleteVisit(id: number): Promise<void> {
   await db.visits.delete(id);
 }
+
+/**
+ * 跨全部历史搜索：关键词匹配 title/url/domain，可选域名/时间范围过滤。
+ * 结果按访问时间倒序。阶段②先用全表内存过滤（数据量小），阶段④再优化索引。
+ */
+export async function searchVisits(opts: {
+  query: string;
+  domain?: string;
+  startDate?: number;
+  endDate?: number;
+}): Promise<Visit[]> {
+  const q = opts.query.trim().toLowerCase();
+  const d = opts.domain?.trim().toLowerCase() ?? '';
+  let rows = await db.visits.toArray();
+  if (q) {
+    rows = rows.filter(
+      (v) =>
+        v.title.toLowerCase().includes(q) ||
+        v.url.toLowerCase().includes(q) ||
+        v.domain.toLowerCase().includes(q),
+    );
+  }
+  if (d) {
+    rows = rows.filter((v) => v.domain.toLowerCase().includes(d));
+  }
+  if (opts.startDate) rows = rows.filter((v) => v.visitTime >= opts.startDate!);
+  if (opts.endDate) rows = rows.filter((v) => v.visitTime < opts.endDate!);
+  return rows.sort((a, b) => b.visitTime - a.visitTime);
+}
+
+/** 统计访问次数最多的域名，返回 [{domain, count}] 按次数倒序，取 limit 条。 */
+export async function getTopDomains(
+  limit = 30,
+): Promise<{ domain: string; count: number }[]> {
+  const rows = await db.visits.toArray();
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    map.set(r.domain, (map.get(r.domain) ?? 0) + 1);
+  }
+  return [...map.entries()]
+    .map(([domain, count]) => ({ domain, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
+
+/** 清空全部历史。 */
+export async function clearAllVisits(): Promise<void> {
+  await db.visits.clear();
+}
+
+/** 按域名删除所有记录。 */
+export async function deleteByDomain(domain: string): Promise<void> {
+  await db.visits.where('domain').equals(domain).delete();
+}
