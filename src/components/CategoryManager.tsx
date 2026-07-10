@@ -1,12 +1,27 @@
 import { useEffect, useState } from 'react';
 import { getSettings, saveCategories, type Settings } from '../store/settings';
-import { DEFAULT_CATEGORIES } from '../lib/categories';
+import {
+  DEFAULT_CATEGORIES,
+  ICON_LIBRARY,
+  COLOR_LIBRARY,
+  type CategoryDef,
+} from '../lib/categories';
 
-/** 分类管理：增删自定义分类与域名规则，持久化到 chrome.storage。 */
+interface FormState {
+  name: string;
+  icon: string;
+  color: string;
+  patterns: string; // 文本，逗号/空格分隔
+}
+
+const EMPTY: FormState = { name: '', icon: '📌', color: '#6C5CE7', patterns: '' };
+
+/** 分类管理：卡片式展示 + 编辑（名称/图标/颜色/规则） + 新增。 */
 export function CategoryManager() {
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [newName, setNewName] = useState('');
-  const [newPatterns, setNewPatterns] = useState('');
+  // null=浏览态；'__new__'=新增；其他=编辑该名称
+  const [editing, setEditing] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(EMPTY);
 
   useEffect(() => {
     getSettings().then(setSettings);
@@ -14,79 +29,215 @@ export function CategoryManager() {
 
   if (!settings) return <div className="text-sm text-muted">加载中…</div>;
 
-  async function addCategory() {
-    const name = newName.trim();
-    if (!name) return;
-    if (settings.categories.some((c) => c.name === name)) {
-      alert('该分类已存在');
+  function beginEdit(cat?: CategoryDef) {
+    if (cat) {
+      setEditing(cat.name);
+      setForm({
+        name: cat.name,
+        icon: cat.icon ?? '📌',
+        color: cat.color ?? '#6C5CE7',
+        patterns: cat.patterns.join(', '),
+      });
+    } else {
+      setEditing('__new__');
+      setForm(EMPTY);
+    }
+  }
+
+  async function saveForm() {
+    const name = form.name.trim();
+    if (!name) {
+      alert('请填写分类名');
       return;
     }
-    const patterns = newPatterns
+    const patterns = form.patterns
       .split(/[\s,，]+/)
       .map((s) => s.trim())
       .filter(Boolean);
-    const categories = [...settings.categories, { name, patterns }];
+    const next: CategoryDef = { name, icon: form.icon, color: form.color, patterns };
+
+    let categories: CategoryDef[];
+    if (editing === '__new__') {
+      if (settings.categories.some((c) => c.name === name)) {
+        alert('该分类名已存在');
+        return;
+      }
+      categories = [...settings.categories, next];
+    } else {
+      categories = settings.categories.map((c) => (c.name === editing ? next : c));
+    }
     await saveCategories(categories);
     setSettings({ ...settings, categories });
-    setNewName('');
-    setNewPatterns('');
+    setEditing(null);
   }
 
-  async function removeCategory(name: string) {
+  async function remove(name: string) {
+    if (!confirm(`删除分类「${name}」？`)) return;
     const categories = settings.categories.filter((c) => c.name !== name);
     await saveCategories(categories);
     setSettings({ ...settings, categories });
   }
 
-  async function resetCategories() {
-    if (!confirm('恢复内置默认分类？自定义分类将丢失。')) return;
+  async function reset() {
+    if (!confirm('恢复内置默认分类？所有自定义将丢失。')) return;
     await saveCategories(DEFAULT_CATEGORIES);
     setSettings({ ...settings, categories: DEFAULT_CATEGORIES });
+    setEditing(null);
   }
 
   return (
-    <div className="rounded bg-card p-4">
-      <div className="mb-2 flex items-center justify-between">
+    <div className="rounded-2xl bg-card p-5">
+      <div className="mb-3 flex items-center justify-between">
         <div className="text-sm font-semibold text-fg">分类管理</div>
-        <button onClick={resetCategories} className="text-xs text-muted hover:text-fg">
+        <button onClick={reset} className="text-xs text-muted hover:text-fg">
           恢复默认
         </button>
       </div>
-      <div className="mb-3 flex flex-col gap-1">
-        {settings.categories.map((c) => (
-          <div key={c.name} className="flex items-center justify-between text-sm">
-            <span className="truncate text-fg">
-              {c.name}
-              <span className="ml-2 text-xs text-muted">{c.patterns.length} 规则</span>
-            </span>
-            <button
-              onClick={() => removeCategory(c.name)}
-              className="shrink-0 text-muted hover:text-fg"
-              title="删除该分类"
+
+      <div className="grid grid-cols-2 gap-2">
+        {settings.categories.map((cat) =>
+          editing === cat.name ? (
+            <EditForm
+              key={cat.name}
+              form={form}
+              setForm={setForm}
+              isNew={false}
+              onSave={saveForm}
+              onCancel={() => setEditing(null)}
+            />
+          ) : (
+            <div
+              key={cat.name}
+              className="rounded-xl p-3"
+              style={{ backgroundColor: `${cat.color ?? '#6C5CE7'}14` }}
             >
-              ×
-            </button>
-          </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{cat.icon ?? '📌'}</span>
+                <span
+                  className="min-w-0 flex-1 truncate font-medium"
+                  style={{ color: cat.color }}
+                >
+                  {cat.name}
+                </span>
+              </div>
+              <div className="mt-1 text-xs text-muted">{cat.patterns.length} 条规则</div>
+              <div className="mt-2 flex gap-1">
+                <button
+                  onClick={() => beginEdit(cat)}
+                  className="rounded bg-bg px-2 py-0.5 text-xs text-fg hover:opacity-80"
+                >
+                  编辑
+                </button>
+                <button
+                  onClick={() => remove(cat.name)}
+                  className="rounded bg-bg px-2 py-0.5 text-xs text-muted hover:text-fg"
+                >
+                  删除
+                </button>
+              </div>
+            </div>
+          ),
+        )}
+
+        {editing === '__new__' && (
+          <EditForm
+            form={form}
+            setForm={setForm}
+            isNew
+            onSave={saveForm}
+            onCancel={() => setEditing(null)}
+          />
+        )}
+      </div>
+
+      {editing === null && (
+        <button
+          onClick={() => beginEdit()}
+          className="mt-3 rounded-lg bg-accent px-4 py-1.5 text-sm text-white hover:opacity-90"
+        >
+          + 添加分类
+        </button>
+      )}
+    </div>
+  );
+}
+
+function EditForm({
+  form,
+  setForm,
+  isNew,
+  onSave,
+  onCancel,
+}: {
+  form: FormState;
+  setForm: (f: FormState) => void;
+  isNew: boolean;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="col-span-2 rounded-xl bg-bg p-3 ring-1 ring-border">
+      <div className="flex gap-2">
+        <input
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="分类名（如：设计）"
+          className="min-w-0 flex-1 rounded bg-card px-2 py-1 text-sm text-fg outline-none ring-1 ring-border focus:ring-accent"
+          autoFocus
+        />
+      </div>
+
+      <div className="mt-2 text-xs text-muted">图标</div>
+      <div className="no-scrollbar mt-1 flex max-h-20 flex-wrap gap-1 overflow-y-auto">
+        {ICON_LIBRARY.map((ic) => (
+          <button
+            key={ic}
+            onClick={() => setForm({ ...form, icon: ic })}
+            className={`rounded p-1 text-lg ${
+              form.icon === ic ? 'bg-accent/30 ring-1 ring-accent' : 'hover:bg-card'
+            }`}
+          >
+            {ic}
+          </button>
         ))}
       </div>
-      <div className="flex flex-col gap-2 border-t border-border pt-3">
+
+      <div className="mt-2 text-xs text-muted">颜色</div>
+      <div className="mt-1 flex flex-wrap gap-1.5">
+        {COLOR_LIBRARY.map((c) => (
+          <button
+            key={c}
+            onClick={() => setForm({ ...form, color: c })}
+            className={`h-6 w-6 rounded ${
+              form.color === c ? 'ring-2 ring-fg ring-offset-1 ring-offset-bg' : ''
+            }`}
+            style={{ backgroundColor: c }}
+            aria-label={c}
+          />
+        ))}
+      </div>
+
+      <div className="mt-2">
         <input
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          placeholder="新分类名（如：设计）"
-          className="rounded bg-bg px-2 py-1 text-sm text-fg outline-none ring-1 ring-border focus:ring-accent"
-        />
-        <input
-          value={newPatterns}
-          onChange={(e) => setNewPatterns(e.target.value)}
+          value={form.patterns}
+          onChange={(e) => setForm({ ...form, patterns: e.target.value })}
           placeholder="域名，逗号分隔（如 figma.com, dribbble.com）"
-          className="rounded bg-bg px-2 py-1 text-sm text-fg outline-none ring-1 ring-border focus:ring-accent"
+          className="w-full rounded bg-card px-2 py-1 text-sm text-fg outline-none ring-1 ring-border focus:ring-accent"
         />
+      </div>
+
+      <div className="mt-2 flex gap-2">
         <button
-          onClick={addCategory}
-          className="rounded bg-accent px-3 py-1.5 text-sm text-white hover:opacity-90"
+          onClick={onSave}
+          className="rounded bg-accent px-3 py-1 text-sm text-white hover:opacity-90"
         >
-          添加分类
+          {isNew ? '添加' : '保存'}
+        </button>
+        <button
+          onClick={onCancel}
+          className="rounded bg-card px-3 py-1 text-sm text-fg"
+        >
+          取消
         </button>
       </div>
     </div>

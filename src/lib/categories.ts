@@ -28,6 +28,20 @@ export const DEFAULT_CATEGORIES: CategoryDef[] = [
   { name: '游戏', icon: '🎮', color: '#8B5CF6', patterns: ['store.steampowered.com', 'epicgames.com', 'itch.io', 'gog.com'] },
 ];
 
+/** 预设图标库（自定义分类选择用）。 */
+export const ICON_LIBRARY = [
+  '💬', '🎬', '🛒', '📰', '✉️', '🔍', '💼', '💻', '📚', '💰', '🎮',
+  '🎵', '🖼️', '📷', '✈️', '🏠', '🍔', '⚽', '🧪', '📊', '🔧', '🎯',
+  '💡', '📺', '💊', '🚗', '📱', '🌐', '🗓️', '📎', '⭐', '❤️', '🔥', '📌',
+];
+
+/** 预设颜色库（自定义分类选择用）。 */
+export const COLOR_LIBRARY = [
+  '#6C5CE7', '#3B82F6', '#14B8A6', '#22C55E', '#F97316', '#EC4899',
+  '#F43F5E', '#EAB308', '#6366F1', '#A855F7', '#10B981', '#8B5CF6',
+  '#0EA5E9', '#F59E0B', '#EF4444', '#84CC16',
+];
+
 function matches(domain: string, pattern: string): boolean {
   if (pattern.endsWith('.')) return domain.startsWith(pattern);
   return domain === pattern || domain.endsWith('.' + pattern);

@@ -1,5 +1,9 @@
-import type { CategoryDef } from '../lib/categories';
-import { DEFAULT_CATEGORIES } from '../lib/categories';
+import {
+  DEFAULT_CATEGORIES,
+  DEFAULT_CATEGORY_ICON,
+  DEFAULT_CATEGORY_COLOR,
+  type CategoryDef,
+} from '../lib/categories';
 
 export interface Settings {
   theme: 'light' | 'dark';
@@ -33,9 +37,21 @@ export async function getBlacklist(): Promise<string[]> {
   return (await getSettings()).blacklist;
 }
 
+/**
+ * 取分类规则。对旧版存储（无 icon/color）做迁移补全：
+ * 按内置同名分类补回 icon/color，避免"全图钉"。
+ */
 export async function getCategories(): Promise<CategoryDef[]> {
   const s = await getSettings();
-  return s.categories ?? DEFAULT_CATEGORIES;
+  const cats = s.categories ?? DEFAULT_CATEGORIES;
+  return cats.map((c) => {
+    const def = DEFAULT_CATEGORIES.find((d) => d.name === c.name);
+    return {
+      ...c,
+      icon: c.icon ?? def?.icon ?? DEFAULT_CATEGORY_ICON,
+      color: c.color ?? def?.color ?? DEFAULT_CATEGORY_COLOR,
+    };
+  });
 }
 
 export async function saveCategories(categories: CategoryDef[]): Promise<void> {
