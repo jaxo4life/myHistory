@@ -16,7 +16,7 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        className="animate-modal w-96 max-w-full rounded-2xl bg-bg p-5 shadow-2xl ring-1 ring-border"
+        className="animate-modal w-96 max-w-full rounded-2xl bg-bg p-5 shadow-modal ring-1 ring-border"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">

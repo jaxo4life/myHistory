@@ -101,7 +101,7 @@ export function AnalyticsView() {
   const range = TREND_RANGES.find((r) => r.key === rangeKey)!;
   const daily = useLiveQuery(() => getDailyCounts(range.days), [range.days]);
   const hourly = useLiveQuery(() => getHourlyDistribution(), []);
-  const top = useLiveQuery(() => getTopDomains(20), []);
+  const top = useLiveQuery(() => getTopDomains(), []);
   const cats = useLiveQuery(() => getCategoryCounts(), [settingsVersion]);
   const matrix = useLiveQuery(() => getWeekdayHourMatrix(), []);
   const transitions = useLiveQuery(() => getTransitionCounts(), []);
@@ -150,13 +150,16 @@ export function AnalyticsView() {
 
   return (
     <div className="no-scrollbar h-full overflow-y-auto p-6">
+      <div className="mx-auto max-w-[1200px]">
       {/* Hero：今日焦点 */}
       <div className="mb-6 rounded-2xl bg-card p-6">
         <div className="flex items-end justify-between gap-6">
           <div className="min-w-0">
             <div className="text-sm text-muted">今日访问</div>
             <div className="mt-1 flex items-baseline gap-3">
-              <span className="text-5xl font-bold tabular-nums text-fg">{todayCount}</span>
+              <span className="text-5xl font-bold tracking-tight tabular-nums text-fg">
+                {todayCount}
+              </span>
               {ratio && (
                 <span className={`text-sm font-medium ${ratio.cls}`}>
                   {ratio.arrow} {ratio.text}
@@ -194,7 +197,9 @@ export function AnalyticsView() {
         {stats.map((s) => (
           <div key={s.label} className="rounded-2xl bg-card p-4">
             <div className="text-xs text-muted">{s.label}</div>
-            <div className="mt-1 text-2xl font-semibold tabular-nums text-fg">{s.value}</div>
+            <div className="mt-1 text-2xl font-semibold tracking-tight tabular-nums text-fg">
+              {s.value}
+            </div>
           </div>
         ))}
       </div>
@@ -378,19 +383,21 @@ export function AnalyticsView() {
 
       {/* Top 域名 + 分类分布 */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-2xl bg-card p-5">
-          <div className="mb-3 text-sm font-semibold text-fg">最常访问 Top 20</div>
-          <div className="no-scrollbar flex h-56 flex-col gap-1 overflow-y-auto">
-            {(top ?? []).map(({ domain, count }, i) => (
-              <div key={domain} className="flex items-center gap-2 text-sm">
-                <span className="w-5 shrink-0 text-right text-xs tabular-nums text-muted">
-                  {i + 1}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-fg">{domain}</span>
-                <span className="shrink-0 text-xs tabular-nums text-muted">{count}</span>
-              </div>
-            ))}
-            {top && top.length === 0 && <div className="text-sm text-muted">暂无数据</div>}
+        <div className="relative rounded-2xl bg-card">
+          <div className="absolute inset-0 flex flex-col p-5">
+            <div className="mb-3 shrink-0 text-sm font-semibold text-fg">最常访问</div>
+            <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+              {(top ?? []).map(({ domain, count }, i) => (
+                <div key={domain} className="flex items-center gap-2 text-sm">
+                  <span className="w-5 shrink-0 text-right text-xs tabular-nums text-muted">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-fg">{domain}</span>
+                  <span className="shrink-0 text-xs tabular-nums text-muted">{count}</span>
+                </div>
+              ))}
+              {top && top.length === 0 && <div className="text-sm text-muted">暂无数据</div>}
+            </div>
           </div>
         </div>
 
@@ -412,6 +419,7 @@ export function AnalyticsView() {
             ))}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

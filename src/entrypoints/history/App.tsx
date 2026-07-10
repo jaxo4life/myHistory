@@ -80,30 +80,33 @@ export function App() {
 
   return (
     <div className="flex h-screen flex-col bg-bg text-fg">
-      <header className="flex items-center justify-between border-b border-border px-6">
-        <div className="flex items-center gap-5">
-          <img src="/icon/512.png" alt="myHistory" className="h-16 w-16" />
-          <nav className="flex h-16">
+      <header className="grid grid-cols-3 items-center border-b border-border px-6">
+        <img
+          src="/icon/512.png"
+          alt="myHistory"
+          className="h-16 w-16 justify-self-start"
+        />
+        <nav className="justify-self-center">
+          <div className="flex items-center gap-1 rounded-full bg-card p-1">
             {tabs.map(({ v, label }) => {
               const active = view === v;
               return (
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  className={`relative flex h-full items-center px-4 text-sm transition-colors ${
-                    active ? 'text-fg' : 'text-muted hover:text-fg'
+                  className={`rounded-full px-5 py-1.5 text-base font-medium transition-all ${
+                    active ? 'bg-elevated text-fg shadow-sm' : 'text-muted hover:text-fg'
                   }`}
                 >
                   {label}
-                  {active && (
-                    <span className="absolute inset-x-3 bottom-0 h-0.5 bg-accent" />
-                  )}
                 </button>
               );
             })}
-          </nav>
+          </div>
+        </nav>
+        <div className="justify-self-end">
+          <ThemeToggle />
         </div>
-        <ThemeToggle />
       </header>
 
       {view === 'analytics' ? (

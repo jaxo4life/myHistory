@@ -50,9 +50,9 @@ describe('visits 查询', () => {
     const start = new Date(2026, 2, 1).getTime();
     const end = new Date(2026, 3, 1).getTime();
     const counts = await getDayCountsInRange(start, end);
-    expect(counts.get('2026-03-15')).toBe(2);
-    expect(counts.get('2026-03-16')).toBe(1);
-    expect(counts.get('2026-03-17')).toBeUndefined();
+    expect(counts['2026-03-15']).toBe(2);
+    expect(counts['2026-03-16']).toBe(1);
+    expect(counts['2026-03-17']).toBeUndefined();
   });
 
   it('deleteVisit 按 id 删除', async () => {

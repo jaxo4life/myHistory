@@ -68,9 +68,9 @@ export async function searchVisits(opts: {
   return rows.sort((a, b) => b.visitTime - a.visitTime);
 }
 
-/** 统计访问次数最多的域名，返回 [{domain, count}] 按次数倒序，取 limit 条。 */
+/** 统计访问次数最多的域名，返回 [{domain, count}] 按次数倒序；limit 不传则返回全部。 */
 export async function getTopDomains(
-  limit = 30,
+  limit = Infinity,
 ): Promise<{ domain: string; count: number }[]> {
   const rows = await db.visits.toArray();
   const map = new Map<string, number>();
@@ -168,9 +168,9 @@ export async function getOverview(): Promise<{
   };
 }
 
-/** 按当前分类规则统计访问数，含 icon，按次数倒序。 */
+/** 按当前分类规则统计访问数，含 icon/color，按次数倒序。 */
 export async function getCategoryCounts(): Promise<
-  { category: string; count: number; icon: string }[]
+  { category: string; count: number; icon: string; color: string }[]
 > {
   const rules = await getCategories();
   const rows = await db.visits.toArray();

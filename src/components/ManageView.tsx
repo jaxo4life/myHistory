@@ -27,6 +27,7 @@ export function ManageView() {
 
   return (
     <div className="no-scrollbar h-full overflow-y-auto p-6">
+      <div className="mx-auto max-w-[1200px]">
       {/* 数据管理 */}
       <div className="mb-6 rounded-2xl bg-card p-5">
         <div className="mb-3 text-sm font-semibold text-fg">数据</div>
@@ -65,6 +66,7 @@ export function ManageView() {
 
       {/* 分类管理 */}
       <CategoryManager />
+      </div>
 
       {clearOpen && (
         <ClearConfirmModal
