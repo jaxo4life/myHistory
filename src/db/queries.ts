@@ -157,7 +157,7 @@ export async function getCategoryCounts(): Promise<
     const c = classifyDomain(r.domain, rules);
     map.set(c, (map.get(c) ?? 0) + 1);
   }
-  return [...map.entries]()
+  return [...map.entries()]
     .map(([category, count]) => {
       const def = rules.find((r) => r.name === category);
       return {
