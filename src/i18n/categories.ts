@@ -15,9 +15,11 @@ export const BUILTIN_CATEGORY_EN: Record<string, string> = {
   '学习': 'Learning',
   '参考': 'Reference',
   '金融': 'Finance',
+  '加密': 'Crypto',
   '旅行': 'Travel',
   '游戏': 'Games',
   '工具': 'Tools',
+  '本地': 'Local',
   '其他': 'Other',
 };
 

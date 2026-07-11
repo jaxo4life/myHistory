@@ -36,7 +36,7 @@ export async function getSettings(): Promise<Settings> {
     const def = DEFAULT_CATEGORIES.find((d) => d.name === c.name);
     return {
       ...c,
-      patterns: migratePatterns && def ? def.patterns : c.patterns,
+      patterns: migratePatterns && def ? Array.from(new Set([...def.patterns, ...c.patterns])) : c.patterns,
       icon: c.icon ?? def?.icon ?? DEFAULT_CATEGORY_ICON,
       color: c.color ?? def?.color ?? DEFAULT_CATEGORY_COLOR,
     };

@@ -4,6 +4,8 @@ import { HistoryItem } from './HistoryItem';
 import { todayKey as getTodayKey, yesterdayKey as getYesterdayKey } from '../lib/url-utils';
 import { formatDateGroupBody } from '../lib/date-format';
 import { useI18n, type Locale } from '../i18n';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { getCategories } from '../store/settings';
 
 const PAGE_SIZE = 100;
 
@@ -55,6 +57,7 @@ interface ListProps {
   selectedIds?: Set<number>;
   onToggleSelect?: (id: number) => void;
   onTagClick?: (tag: string) => void;
+  settingsVersion: number;
 }
 
 export function HistoryList({
@@ -63,8 +66,10 @@ export function HistoryList({
   selectedIds,
   onToggleSelect,
   onTagClick,
+  settingsVersion,
 }: ListProps) {
   const { t, locale } = useI18n();
+  const categories = useLiveQuery(() => getCategories(), [settingsVersion]);
   const [limit, setLimit] = useState(PAGE_SIZE);
 
   useEffect(() => {
@@ -115,6 +120,7 @@ export function HistoryList({
                 selected={v.id !== undefined && selectedIds?.has(v.id)}
                 onToggleSelect={onToggleSelect}
                 onTagClick={onTagClick}
+                categories={categories}
               />
             ))}
           </div>

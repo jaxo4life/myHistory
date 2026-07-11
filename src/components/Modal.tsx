@@ -5,10 +5,12 @@ export function Modal({
   title,
   onClose,
   children,
+  wide = false,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  wide?: boolean;
 }) {
   const { t } = useI18n();
   return (
@@ -17,7 +19,7 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        className="animate-modal w-96 max-w-full rounded-2xl bg-bg p-5 shadow-modal ring-1 ring-border"
+        className={`animate-modal ${wide ? 'w-[34rem]' : 'w-96'} max-w-full rounded-2xl bg-bg p-5 shadow-modal ring-1 ring-border`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">

@@ -44,10 +44,11 @@ Your browsing history **stays on your own machine.** Zero network reporting, zer
 - Active hours / visit sources / Top domains (full) / category distribution
 
 ### 🗂 Smart Categories
-- **17 built-in categories** (Social / Video / Shopping / News / AI / Dev / Tools / Travel / Finance …), covering global + Chinese mainstream sites
-- **Longest-match + keyword fallback**: precise rules first; unmatched domains classified by keyword heuristics
+- **19 built-in categories** (Social / Video / Shopping / News / AI / Dev / Tools / Travel / Finance / Crypto / Local …), covering global + Chinese mainstream sites
+- **One-click reclassify**: hover any record to see its current category; click the folder icon to add its domain to a chosen category (auto-extracts the registrable domain with multi-part-TLD awareness, e.g. `www.right.com.cn → right.com.cn`; editable)
+- **Longest-match + keyword fallback**: precise rules first; unmatched by keyword heuristics; LAN IPs / `localhost` / `.local` auto-classified as "Local"
 - **Version migration**: rule upgrades migrate existing users automatically; custom categories preserved
-- **Fully customizable**: add/remove categories, edit rules, custom tags in the Manage page
+- **Fully customizable**: add/remove categories, edit rules (~90 icons to pick), custom tags
 
 ### 🌐 Bilingual (zh / en)
 - One-click **中文 / English** toggle; calendar (zh Mon-first / en Sun-first), month names, date formats all follow

@@ -102,7 +102,7 @@ export function App() {
             })}
           </div>
         </nav>
-        <div className="flex items-center gap-1 justify-self-end">
+        <div className="flex items-center gap-2 justify-self-end">
           <LocaleToggle />
           <ThemeToggle />
         </div>
@@ -222,6 +222,7 @@ export function App() {
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
               onTagClick={setTagFilter}
+              settingsVersion={settingsVersion}
             />
           </main>
           <aside className="no-scrollbar flex w-[300px] shrink-0 flex-col overflow-y-auto p-5">
