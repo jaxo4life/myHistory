@@ -218,3 +218,8 @@ export async function getAllTags(): Promise<{ tag: string; count: number }[]> {
 export async function getTodayCount(): Promise<number> {
   return db.visits.where('dayKey').equals(todayKey()).count();
 }
+
+export async function getDomainCount(domain: string): Promise<number> {
+  if (!domain) return 0;
+  return db.visits.where('domain').equals(domain).count();
+}
