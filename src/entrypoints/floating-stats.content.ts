@@ -9,14 +9,19 @@ type StatsResponse =
   | { error: true };
 
 async function fetchStats(domain: string): Promise<StatsResponse> {
-  try {
-    return (await chrome.runtime.sendMessage({
-      type: 'FLOATING_STATS',
-      domain,
-    })) as StatsResponse;
-  } catch {
-    return { error: true };
+  // 最多重试 2 次（覆盖 SW 冷启动 / backfill 期间的暂时性失败）
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await chrome.runtime.sendMessage({ type: 'FLOATING_STATS', domain });
+      if (res && typeof res === 'object' && 'todayCount' in res) {
+        return res as StatsResponse;
+      }
+    } catch {
+      // messaging 失败，落入重试
+    }
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 1000));
   }
+  return { error: true };
 }
 
 interface Widget {
