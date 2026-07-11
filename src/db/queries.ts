@@ -1,6 +1,6 @@
 import { db } from './database';
 import type { Visit, NewVisit } from '../types/visit';
-import { classifyDomain, DEFAULT_CATEGORY_ICON, DEFAULT_CATEGORY_COLOR } from '../lib/categories';
+import { classifyDomain, DEFAULT_CATEGORY_ICON, DEFAULT_CATEGORY_COLOR, type CategoryDef } from '../lib/categories';
 import { getCategories } from '../store/settings';
 import { todayKey } from '../lib/url-utils';
 
@@ -222,4 +222,30 @@ export async function getTodayCount(): Promise<number> {
 export async function getDomainCount(domain: string): Promise<number> {
   if (!domain) return 0;
   return db.visits.where('domain').equals(domain).count();
+}
+
+export async function getTodayTopCategory(
+  rules: CategoryDef[],
+): Promise<{ name: string; icon: string; color: string } | null> {
+  const rows = await db.visits.where('dayKey').equals(todayKey()).toArray();
+  if (rows.length === 0) return null;
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    const c = classifyDomain(r.domain, rules);
+    map.set(c, (map.get(c) ?? 0) + 1);
+  }
+  let bestName = '';
+  let bestCount = 0;
+  for (const [name, count] of map) {
+    if (count > bestCount) {
+      bestCount = count;
+      bestName = name;
+    }
+  }
+  const def = rules.find((r) => r.name === bestName);
+  return {
+    name: bestName,
+    icon: def?.icon ?? DEFAULT_CATEGORY_ICON,
+    color: def?.color ?? DEFAULT_CATEGORY_COLOR,
+  };
 }

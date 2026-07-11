@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../src/db/database';
-import { addVisit, getTodayCount, getDomainCount } from '../src/db/queries';
+import { addVisit, getTodayCount, getDomainCount, getTodayTopCategory } from '../src/db/queries';
+import { DEFAULT_CATEGORIES } from '../src/lib/categories';
 import { todayKey } from '../src/lib/url-utils';
 import type { NewVisit } from '../src/types/visit';
 
@@ -50,5 +51,34 @@ describe('getDomainCount', () => {
 
   it('空域名返回 0，不抛错', async () => {
     expect(await getDomainCount('')).toBe(0);
+  });
+});
+
+describe('getTodayTopCategory', () => {
+  beforeEach(async () => {
+    await db.visits.clear();
+  });
+
+  it('返回今日占比最高的分类（含 icon/color）', async () => {
+    await addVisit(mk('github.com')); // 开发
+    await addVisit(mk('gitlab.com')); // 开发
+    await addVisit(mk('youtube.com')); // 视频
+    const top = await getTodayTopCategory(DEFAULT_CATEGORIES);
+    expect(top).not.toBeNull();
+    expect(top!.name).toBe('开发');
+    expect(typeof top!.icon).toBe('string');
+    expect(top!.icon.length).toBeGreaterThan(0);
+    expect(top!.color).toMatch(/^#/);
+  });
+
+  it('今日无记录返回 null', async () => {
+    expect(await getTodayTopCategory(DEFAULT_CATEGORIES)).toBeNull();
+  });
+
+  it('只统计今日，忽略历史记录的分类', async () => {
+    await addVisit(mk('youtube.com', '2020-01-01')); // 历史视频
+    await addVisit(mk('github.com')); // 今日开发
+    const top = await getTodayTopCategory(DEFAULT_CATEGORIES);
+    expect(top!.name).toBe('开发');
   });
 });
