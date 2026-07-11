@@ -130,6 +130,16 @@ export const translations: Record<Locale, Record<string, string>> = {
     'catMgr.nameRequired': '请填写分类名',
     'catMgr.nameExists': '该分类名已存在',
     'catMgr.cardTitle': '{name} · {n} 条规则',
+    'catMgr.exportAll': '导出全部',
+    'catMgr.exportSelected': '导出所选',
+    'catMgr.exportTitle': '选择要导出的分类',
+    'catMgr.exportBtn': '导出',
+    'catMgr.selectAll': '全选',
+    'catMgr.deselectAll': '取消全选',
+    'catMgr.exportNoneSelected': '请至少选择一个分类',
+    'catMgr.import': '导入',
+    'catMgr.importSuccess': '已导入 {n} 个分类（同名已覆盖）',
+    'catMgr.importFailed': '导入失败，请检查文件格式',
 
     'catStats.filterTitle': '按「{name}」过滤',
 
@@ -270,6 +280,16 @@ export const translations: Record<Locale, Record<string, string>> = {
     'catMgr.nameRequired': 'Please enter a category name',
     'catMgr.nameExists': 'This category name already exists',
     'catMgr.cardTitle': '{name} · {n} rules',
+    'catMgr.exportAll': 'Export all',
+    'catMgr.exportSelected': 'Export selected',
+    'catMgr.exportTitle': 'Select categories to export',
+    'catMgr.exportBtn': 'Export',
+    'catMgr.selectAll': 'Select all',
+    'catMgr.deselectAll': 'Deselect all',
+    'catMgr.exportNoneSelected': 'Please select at least one category',
+    'catMgr.import': 'Import',
+    'catMgr.importSuccess': 'Imported {n} categories (duplicates overwritten)',
+    'catMgr.importFailed': 'Import failed: invalid file format',
 
     'catStats.filterTitle': 'Filter by "{name}"',
 

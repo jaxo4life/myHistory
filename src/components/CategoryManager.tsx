@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { getCategories, saveCategories } from '../store/settings';
+import { categoriesToJSON, downloadText, parseCategories, stampedFilename } from '../lib/exporter';
+import { Modal } from './Modal';
 import {
   DEFAULT_CATEGORIES,
   DEFAULT_CATEGORY_ICON,
@@ -24,6 +26,9 @@ export function CategoryManager() {
   const [categories, setCategories] = useState<CategoryDef[] | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
 
   useEffect(() => {
     getCategories().then(setCategories);
@@ -52,6 +57,7 @@ export function CategoryManager() {
   }
 
   async function saveForm() {
+    if (!categories) return;
     const name = form.name.trim();
     if (!name) {
       alert(t('catMgr.nameRequired'));
@@ -77,16 +83,43 @@ export function CategoryManager() {
     setEditing(null);
   }
 
-  async function remove(name: string) {
-    if (!confirm(t('catMgr.deleteConfirm', { name }))) return;
-    await persist(categories.filter((c) => c.name !== name));
+  function askDelete(name: string) {
+    setDeleteTarget(name);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget || !categories) return;
+    await persist(categories.filter((c) => c.name !== deleteTarget));
+    setDeleteTarget(null);
     setEditing(null);
   }
 
-  async function reset() {
-    if (!confirm(t('catMgr.resetConfirm'))) return;
+  async function confirmReset() {
     await persist(DEFAULT_CATEGORIES);
+    setResetOpen(false);
     setEditing(null);
+  }
+
+  function exportAll() {
+    if (!categories) return;
+    downloadText(stampedFilename('my-categories', 'json'), categoriesToJSON(categories), 'application/json');
+  }
+
+  async function onImportFile(e: ChangeEvent<HTMLInputElement>) {
+    if (!categories) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    e.target.value = '';
+    const incoming = parseCategories(text);
+    if (incoming.length === 0) {
+      alert(t('catMgr.importFailed'));
+      return;
+    }
+    const map = new Map(categories.map((c) => [c.name, c]));
+    for (const c of incoming) map.set(c.name, c);
+    await persist(Array.from(map.values()));
+    alert(t('catMgr.importSuccess', { n: incoming.length }));
   }
 
   return (
@@ -96,7 +129,7 @@ export function CategoryManager() {
           {t('catMgr.title')}{' '}
           <span className="text-xs font-normal text-muted">{t('catMgr.subtitle')}</span>
         </div>
-        <button onClick={reset} className="text-xs text-muted hover:text-fg">
+        <button onClick={() => setResetOpen(true)} className="text-xs text-muted hover:text-fg">
           {t('catMgr.reset')}
         </button>
       </div>
@@ -128,7 +161,7 @@ export function CategoryManager() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  remove(cat.name);
+                  askDelete(cat.name);
                 }}
                 className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-bg text-xs text-muted ring-1 ring-border hover:text-fg group-hover:flex"
                 title={t('catMgr.deleteTitle')}
@@ -147,19 +180,92 @@ export function CategoryManager() {
             setForm={setForm}
             isNew={editing === '__new__'}
             onSave={saveForm}
-            onDelete={editing !== '__new__' ? () => remove(editing!) : undefined}
+            onDelete={editing !== '__new__' ? () => askDelete(editing!) : undefined}
             onCancel={() => setEditing(null)}
           />
         </div>
       )}
 
-      {editing === null && (
-        <button
-          onClick={() => beginEdit()}
-          className="mt-3 rounded-lg bg-accent px-4 py-1.5 text-sm text-white hover:opacity-90"
-        >
-          {t('catMgr.add')}
-        </button>
+      <div className="mt-3 flex items-center gap-2">
+        {editing === null && (
+          <button
+            onClick={() => beginEdit()}
+            className="rounded-lg bg-accent px-4 py-1.5 text-sm text-white hover:opacity-90"
+          >
+            {t('catMgr.add')}
+          </button>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          <label className="flex cursor-pointer items-center rounded-lg bg-bg px-3 py-1.5 text-sm text-fg ring-1 ring-border transition-colors hover:bg-border">
+            {t('catMgr.import')}
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={onImportFile}
+            />
+          </label>
+          <button
+            onClick={exportAll}
+            className="rounded-lg bg-bg px-3 py-1.5 text-sm text-fg ring-1 ring-border transition-colors hover:bg-border"
+          >
+            {t('catMgr.exportAll')}
+          </button>
+          <button
+            onClick={() => setExportOpen(true)}
+            className="rounded-lg bg-bg px-3 py-1.5 text-sm text-fg ring-1 ring-border transition-colors hover:bg-border"
+          >
+            {t('catMgr.exportSelected')}
+          </button>
+        </div>
+      </div>
+
+      {exportOpen && categories && (
+        <ExportModal categories={categories} onClose={() => setExportOpen(false)} />
+      )}
+
+      {deleteTarget && (
+        <Modal title={t('catMgr.deleteTitle')} onClose={() => setDeleteTarget(null)}>
+          <div className="mb-4 text-sm text-fg">
+            {t('catMgr.deleteConfirm', { name: deleteTarget })}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setDeleteTarget(null)}
+              className="rounded bg-card px-3 py-1 text-sm text-fg"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="rounded bg-red-500/90 px-3 py-1 text-sm text-white transition-colors hover:bg-red-500"
+            >
+              {t('catMgr.deleteTitle')}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {resetOpen && (
+        <Modal title={t('catMgr.reset')} onClose={() => setResetOpen(false)}>
+          <div className="mb-4 text-sm text-fg">
+            {t('catMgr.resetConfirm')}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setResetOpen(false)}
+              className="rounded bg-card px-3 py-1 text-sm text-fg"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={confirmReset}
+              className="rounded bg-red-500/90 px-3 py-1 text-sm text-white transition-colors hover:bg-red-500"
+            >
+              {t('catMgr.reset')}
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -256,5 +362,94 @@ function EditForm({
         )}
       </div>
     </div>
+  );
+}
+
+function ExportModal({
+  categories,
+  onClose,
+}: {
+  categories: CategoryDef[];
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const allOn = categories.length > 0 && selected.size === categories.length;
+
+  function toggle(name: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
+
+  function doExport() {
+    const list = categories.filter((c) => selected.has(c.name));
+    if (list.length === 0) {
+      alert(t('catMgr.exportNoneSelected'));
+      return;
+    }
+    downloadText('my-categories.json', categoriesToJSON(list), 'application/json');
+    onClose();
+  }
+
+  return (
+    <Modal title={t('catMgr.exportTitle')} onClose={onClose} wide>
+      <div className="mb-2 flex items-center justify-end">
+        <button
+          onClick={() =>
+            setSelected(allOn ? new Set() : new Set(categories.map((c) => c.name)))
+          }
+          className="text-xs text-muted hover:text-fg"
+        >
+          {allOn ? t('catMgr.deselectAll') : t('catMgr.selectAll')}
+        </button>
+      </div>
+      <div className="no-scrollbar grid max-h-80 grid-cols-6 gap-1.5 overflow-y-auto">
+        {categories.map((cat) => {
+          const on = selected.has(cat.name);
+          const color = cat.color ?? '#6C5CE7';
+          return (
+            <div
+              key={cat.name}
+              onClick={() => toggle(cat.name)}
+              role="button"
+              tabIndex={0}
+              className="relative flex cursor-pointer flex-col items-center gap-0.5 rounded-lg p-2 transition-opacity hover:opacity-80"
+              style={{
+                backgroundColor: `${color}${on ? '33' : '14'}`,
+                boxShadow: on ? `0 0 0 2px ${color}` : undefined,
+              }}
+            >
+              <span className="text-lg leading-none">{cat.icon ?? '📌'}</span>
+              <span
+                className="w-full truncate text-center text-[11px] leading-tight"
+                style={{ color }}
+              >
+                {cat.name}
+              </span>
+              {on && (
+                <span className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] text-white">
+                  ✓
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 flex justify-end gap-2">
+        <button onClick={onClose} className="rounded bg-card px-3 py-1 text-sm text-fg">
+          {t('common.cancel')}
+        </button>
+        <button
+          onClick={doExport}
+          className="rounded bg-accent px-3 py-1 text-sm text-white hover:opacity-90"
+        >
+          {t('catMgr.exportBtn')} ({selected.size})
+        </button>
+      </div>
+    </Modal>
   );
 }
