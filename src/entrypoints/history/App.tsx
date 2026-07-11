@@ -18,6 +18,8 @@ import { useI18n, catLabel } from '../../i18n';
 
 type View = 'history' | 'analytics' | 'manage';
 
+const APP_VERSION = chrome.runtime.getManifest().version;
+
 export function App() {
   const { t, locale } = useI18n();
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -114,7 +116,7 @@ export function App() {
         <ManageView />
       ) : (
         <div className="flex flex-1 overflow-hidden">
-          <aside className="w-72 shrink-0 p-5">
+          <aside className="flex w-72 shrink-0 flex-col p-5">
             <Calendar
               weekStart={locale === 'zh' ? 1 : 0}
               selectedDayKey={selectedDayKey}
@@ -125,6 +127,9 @@ export function App() {
                 {t('sidebar.daySummary')}
               </div>
               <DaySummary dayKey={selectedDayKey} />
+            </div>
+            <div className="mt-auto pt-4 text-center text-xs text-muted">
+              myHistory v{APP_VERSION}
             </div>
           </aside>
           <main className="no-scrollbar flex-1 overflow-y-auto px-6 py-5">
