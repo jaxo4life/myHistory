@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 :root {
-  /* 浅色主题 */
   --bg: 255 255 255;
   --card: 247 247 250;
   --elevated: 255 255 255;
@@ -11,41 +10,38 @@
   --fg: 24 24 32;
   --muted: 108 108 120;
   --faint: 158 158 170;
-  --accent: 108 92 231; /* #6C5CE7 */
+  --accent: 108 92 231;
 }
 
 .dark {
-  /* 深色主题：底更深让卡片浮起，border 拉开可见层次 */
-  --bg: 20 20 24; /* #141418 */
-  --card: 30 30 36; /* #1E1E24 */
-  --elevated: 40 40 48; /* #282830 */
-  --border: 50 50 60; /* #32323C */
+  --bg: 20 20 24;
+  --card: 30 30 36;
+  --elevated: 40 40 48;
+  --border: 50 50 60;
   --fg: 238 238 244;
   --muted: 148 148 160;
   --faint: 108 108 120;
-  --accent: 108 92 231; /* #6C5CE7 */
+  --accent: 108 92 231;
 }
 
 body {
   background-color: rgb(var(--bg));
   color: rgb(var(--fg));
   font-family: Inter, system-ui, sans-serif;
-  font-feature-settings: 'cv11', 'ss01', 'ss03'; /* Inter 替用字形，更现代 */
-  font-variant-numeric: tabular-nums; /* 数字等宽对齐 */
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* 隐藏滚动条但保留滚动（用于中栏历史列表等） */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .no-scrollbar {
-  -ms-overflow-style: none; /* IE/旧 Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* 纵深阴影：深色主题用更深的投影（Tailwind 默认 shadow 在深底上几乎看不见） */
 .shadow-elevated {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
@@ -59,7 +55,6 @@ body {
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-/* Modal / 浮层入场动画 */
 @keyframes overlay-in {
   from { opacity: 0; }
   to { opacity: 1; }
