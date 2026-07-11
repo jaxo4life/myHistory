@@ -1,13 +1,72 @@
 import { getDomain, getDayKey } from '../lib/url-utils';
 import { shouldRecord } from '../lib/privacy';
-import { addVisit } from '../db/queries';
-import { getBlacklist } from '../store/settings';
+import { addVisit, getTodayCount, getDomainCount, getTodayTopCategory } from '../db/queries';
+import { getBlacklist, getCategories } from '../store/settings';
 
 const BACKFILL_FLAG = 'history-plus:backfilled';
 const SETTINGS_KEY = 'history-plus:settings';
 const DEDUP_MS = 1500;
 
 export default defineBackground(() => {
+  // —— 悬浮统计窗：内存缓存（多 tab 单点去重）——
+  const FLOAT_TTL = 5000;
+  let floatGlobal: {
+    todayCount: number;
+    topCategory: { name: string; icon: string; color: string } | null;
+    at: number;
+  } | null = null;
+  const floatDomain = new Map<string, { count: number; at: number }>();
+
+  function invalidateFloatGlobal() {
+    floatGlobal = null;
+  }
+
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg?.type === 'FLOATING_STATS') {
+      handleFloatingStats(typeof msg.domain === 'string' ? msg.domain : '').then(sendResponse);
+      return true; // 异步响应
+    }
+    return false;
+  });
+
+  async function handleFloatingStats(domain: string): Promise<
+    | {
+        todayCount: number;
+        siteCount: number;
+        topCategory: { name: string; icon: string; color: string } | null;
+      }
+    | { error: true }
+  > {
+    const now = Date.now();
+    try {
+      // 全局：命中缓存直接用，否则重算一次
+      let todayCount: number;
+      let topCategory: { name: string; icon: string; color: string } | null;
+      if (floatGlobal && now - floatGlobal.at < FLOAT_TTL) {
+        todayCount = floatGlobal.todayCount;
+        topCategory = floatGlobal.topCategory;
+      } else {
+        const rules = await getCategories();
+        const [tc, cat] = await Promise.all([getTodayCount(), getTodayTopCategory(rules)]);
+        todayCount = tc;
+        topCategory = cat;
+        floatGlobal = { todayCount, topCategory, at: now };
+      }
+      // per-domain：命中缓存直接用，否则索引 count
+      let siteCount: number;
+      const dc = floatDomain.get(domain);
+      if (dc && now - dc.at < FLOAT_TTL) {
+        siteCount = dc.count;
+      } else {
+        siteCount = await getDomainCount(domain);
+        floatDomain.set(domain, { count: siteCount, at: now });
+      }
+      return { todayCount, siteCount, topCategory };
+    } catch {
+      return { error: true };
+    }
+  }
+
   const recentNavs = new Map<string, number>();
   let blacklistCache: string[] | null = null;
   const getBlacklistCached = async (): Promise<string[]> => {
@@ -60,6 +119,7 @@ export default defineBackground(() => {
       referrerUrl: undefined,
       faviconUrl: tab?.favIconUrl,
     });
+    invalidateFloatGlobal();
   });
 });
 
