@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Visit } from '../types/visit';
 import { HistoryItem } from './HistoryItem';
-import { getDayKey } from '../lib/url-utils';
+import { todayKey as getTodayKey, yesterdayKey as getYesterdayKey } from '../lib/url-utils';
 import { formatDateGroupBody } from '../lib/date-format';
 import { useI18n, type Locale } from '../i18n';
 
@@ -36,7 +36,7 @@ function groupByDay(
 ): Group[] {
   const map = new Map<string, Visit[]>();
   for (const v of visits) {
-    const k = getDayKey(v.visitTime);
+    const k = v.dayKey;
     let arr = map.get(k);
     if (!arr) {
       arr = [];
@@ -98,9 +98,7 @@ export function HistoryList({
   }
 
   const shown = visits.slice(0, limit);
-  const todayKey = getDayKey(Date.now());
-  const yesterdayKey = getDayKey(Date.now() - 86_400_000);
-  const groups = groupByDay(shown, todayKey, yesterdayKey, locale, t);
+  const groups = groupByDay(shown, getTodayKey(), getYesterdayKey(), locale, t);
   const remaining = visits.length - limit;
 
   return (

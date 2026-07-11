@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { getCategories, saveCategories } from '../store/settings';
 import {
   DEFAULT_CATEGORIES,
+  DEFAULT_CATEGORY_ICON,
+  DEFAULT_CATEGORY_COLOR,
   ICON_LIBRARY,
   COLOR_LIBRARY,
   type CategoryDef,
@@ -15,7 +17,7 @@ interface FormState {
   patterns: string; // 文本，逗号/空格分隔
 }
 
-const EMPTY: FormState = { name: '', icon: '📌', color: '#6C5CE7', patterns: '' };
+const EMPTY: FormState = { name: '', icon: DEFAULT_CATEGORY_ICON, color: DEFAULT_CATEGORY_COLOR, patterns: '' };
 
 /** 分类管理：上方卡片网格（始终显示，当前编辑高亮）+ 下方隔离的编辑区。
  * 注意：此处是「编辑面」，分类名显示原始逻辑键、不翻译（翻译只发生在读展示面）。 */
@@ -37,8 +39,8 @@ export function CategoryManager() {
       setEditing(cat.name);
       setForm({
         name: cat.name,
-        icon: cat.icon ?? '📌',
-        color: cat.color ?? '#6C5CE7',
+        icon: cat.icon ?? DEFAULT_CATEGORY_ICON,
+        color: cat.color ?? DEFAULT_CATEGORY_COLOR,
         patterns: cat.patterns.join(', '),
       });
     } else {

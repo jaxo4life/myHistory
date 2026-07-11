@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   getOverview,
@@ -9,9 +9,10 @@ import {
   getWeekdayHourMatrix,
   getTransitionCounts,
 } from '../db/queries';
-import { getDayKey } from '../lib/url-utils';
-import { formatDateLong, weekdayName } from '../lib/date-format';
-import { useI18n, catLabel } from '../i18n';
+import { yesterdayKey } from '../lib/url-utils';
+import { formatDateLong, weekdayName, ZH_WEEKDAY_NARROW, EN_WEEKDAY_NARROW } from '../lib/date-format';
+import { useI18n, catLabel, type Locale } from '../i18n';
+import { useSettingsVersion } from '../store/useSettingsVersion';
 import {
   AreaChart,
   Area,
@@ -28,9 +29,15 @@ const MUTED = '#8E8E8E';
 const TREND = '#3B82F6';
 const HOUR_BASE = 'rgba(108,92,231,0.35)';
 const HOUR_PEAK = '#F97316';
-// 周行序由 locale 决定（中文周一 / 英文周日），见组件内 weekdayOrder
-const ZH_WEEKDAY_NARROW = ['日', '一', '二', '三', '四', '五', '六']; // index=getDay
-const EN_WEEKDAY_NARROW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+// 周行序由 locale 决定（中文周一 / 英文周日）
+const WEEKDAY_ORDER: Record<Locale, number[]> = {
+  zh: [1, 2, 3, 4, 5, 6, 0],
+  en: [0, 1, 2, 3, 4, 5, 6],
+};
+const HEAT_ROW_LABELS: Record<Locale, string[]> = {
+  zh: WEEKDAY_ORDER.zh.map((wd) => ZH_WEEKDAY_NARROW[wd]),
+  en: WEEKDAY_ORDER.en.map((wd) => EN_WEEKDAY_NARROW[wd]),
+};
 
 const TREND_RANGES = [
   { key: '7', rangeKey: 'range.7d', days: 7 },
@@ -65,13 +72,7 @@ function ChartTooltip({ active, payload, label }: any) {
 
 export function AnalyticsView() {
   const { t, locale } = useI18n();
-  // 分类规则存在 chrome.storage，liveQuery 默认只监听 db；用 version 在 storage 变化时驱动重算
-  const [settingsVersion, setSettingsVersion] = useState(0);
-  useEffect(() => {
-    const handler = () => setSettingsVersion((v) => v + 1);
-    chrome.storage.onChanged.addListener(handler);
-    return () => chrome.storage.onChanged.removeListener(handler);
-  }, []);
+  const settingsVersion = useSettingsVersion();
 
   const overview = useLiveQuery(() => getOverview(), []);
   const [rangeKey, setRangeKey] = useState<(typeof TREND_RANGES)[number]['key']>('30');
@@ -87,10 +88,8 @@ export function AnalyticsView() {
   const maxCell = matrix && matrix.length > 0 ? Math.max(...matrix.flat(), 1) : 1;
   const transTotal = transitions?.reduce((s, x) => s + x.count, 0) ?? 0;
   const rangeTotal = (daily ?? []).reduce((s, d) => s + d.count, 0);
-  const weekdayOrder = Array.from({ length: 7 }, (_, i) => (i + (locale === 'zh' ? 1 : 0)) % 7);
-  const heatRowLabels = weekdayOrder.map((wd) =>
-    locale === 'zh' ? ZH_WEEKDAY_NARROW[wd] : EN_WEEKDAY_NARROW[wd],
-  );
+  const weekdayOrder = WEEKDAY_ORDER[locale];
+  const heatRowLabels = HEAT_ROW_LABELS[locale];
 
   const heatPeak = useMemo(() => {
     if (!matrix) return { wd: -1, hr: -1, count: 0 };
@@ -105,8 +104,7 @@ export function AnalyticsView() {
 
   // 今日 vs 昨日环比（昨天落在所有可选范围内）
   const todayCount = overview?.today ?? 0;
-  const yesterdayKey = getDayKey(Date.now() - 86_400_000);
-  const yesterdayCount = daily?.find((d) => d.dayKey === yesterdayKey)?.count ?? 0;
+  const yesterdayCount = daily?.find((d) => d.dayKey === yesterdayKey())?.count ?? 0;
   const diff = todayCount - yesterdayCount;
   const spark = (daily ?? []).slice(-7);
 

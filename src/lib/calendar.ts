@@ -1,4 +1,6 @@
 import type { Locale } from '../i18n/translations';
+import { getDayKey } from './url-utils';
+import { ZH_WEEKDAY_NARROW, EN_WEEKDAY_NARROW } from './date-format';
 
 export interface CalendarDay {
   date: Date;
@@ -7,13 +9,6 @@ export interface CalendarDay {
   isCurrentMonth: boolean;
   isToday: boolean;
   dateMs: number;
-}
-
-export function formatDayKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
 }
 
 /**
@@ -33,12 +28,12 @@ export function buildMonthGrid(
   const firstWeekday = firstOfMonth.getDay(); // 0=Sun..6=Sat
   const offset = (firstWeekday - weekStart + 7) % 7;
   const start = new Date(year, month, 1 - offset);
-  const todayKey = formatDayKey(new Date(todayMs));
+  const todayKey = getDayKey(todayMs);
 
   const days: CalendarDay[] = [];
   for (let i = 0; i < 42; i++) {
     const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-    const dayKey = formatDayKey(d);
+    const dayKey = getDayKey(d.getTime());
     days.push({
       date: d,
       dayKey,
@@ -53,9 +48,6 @@ export function buildMonthGrid(
 
 /** 周表头标签。locale 决定中文「一二三…」/ 英文单字母；weekStart 旋转起始日。 */
 export function weekdayLabels(weekStart: 0 | 1, locale: Locale = 'zh'): string[] {
-  const base =
-    locale === 'zh'
-      ? ['日', '一', '二', '三', '四', '五', '六'] // 索引 = getDay
-      : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const base = locale === 'zh' ? ZH_WEEKDAY_NARROW : EN_WEEKDAY_NARROW;
   return [...base.slice(weekStart), ...base.slice(0, weekStart)];
 }

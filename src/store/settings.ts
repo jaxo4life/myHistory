@@ -8,7 +8,6 @@ import {
 
 export interface Settings {
   theme: 'light' | 'dark';
-  weekStart: 0 | 1; // 0=周日, 1=周一
   dotMode: 'dot' | 'heatmap';
   blacklist: string[];
   categories: CategoryDef[];
@@ -20,7 +19,6 @@ const KEY = 'history-plus:settings';
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',
-  weekStart: 1,
   dotMode: 'dot',
   blacklist: [],
   categories: DEFAULT_CATEGORIES,

@@ -2,7 +2,7 @@ import { db } from './database';
 import type { Visit, NewVisit } from '../types/visit';
 import { classifyDomain, DEFAULT_CATEGORY_ICON, DEFAULT_CATEGORY_COLOR } from '../lib/categories';
 import { getCategories } from '../store/settings';
-import { getDayKey } from '../lib/url-utils';
+import { todayKey } from '../lib/url-utils';
 
 /** 写入一条访问记录，返回自增 id。 */
 export async function addVisit(visit: NewVisit): Promise<number> {
@@ -44,28 +44,23 @@ export async function searchVisits(opts: {
 }): Promise<Visit[]> {
   const q = opts.query.trim().toLowerCase();
   const d = opts.domain?.trim().toLowerCase() ?? '';
-  let rows = await db.visits.toArray();
-  if (q) {
-    rows = rows.filter(
-      (v) =>
-        v.title.toLowerCase().includes(q) ||
-        v.url.toLowerCase().includes(q) ||
-        v.domain.toLowerCase().includes(q),
-    );
-  }
-  if (d) {
-    rows = rows.filter((v) => v.domain.toLowerCase().includes(d));
-  }
-  if (opts.category) {
-    const rules = await getCategories();
-    rows = rows.filter((v) => classifyDomain(v.domain, rules) === opts.category);
-  }
-  if (opts.tag) {
-    rows = rows.filter((v) => (v.tags ?? []).includes(opts.tag!));
-  }
-  if (opts.startDate) rows = rows.filter((v) => v.visitTime >= opts.startDate!);
-  if (opts.endDate) rows = rows.filter((v) => v.visitTime < opts.endDate!);
-  return rows.sort((a, b) => b.visitTime - a.visitTime);
+  const rules = opts.category ? await getCategories() : null;
+  const rows = await db.visits.toArray();
+  const filtered = rows.filter((v) => {
+    if (q) {
+      const hay = v.title.toLowerCase();
+      if (!hay.includes(q) && !v.url.toLowerCase().includes(q) && !v.domain.toLowerCase().includes(q)) {
+        return false;
+      }
+    }
+    if (d && !v.domain.toLowerCase().includes(d)) return false;
+    if (opts.category && rules && classifyDomain(v.domain, rules) !== opts.category) return false;
+    if (opts.tag && !(v.tags ?? []).includes(opts.tag)) return false;
+    if (opts.startDate && v.visitTime < opts.startDate) return false;
+    if (opts.endDate && v.visitTime >= opts.endDate) return false;
+    return true;
+  });
+  return filtered.sort((a, b) => b.visitTime - a.visitTime);
 }
 
 /** 统计访问次数最多的域名，返回 [{domain, count}] 按次数倒序；limit 不传则返回全部。 */
@@ -140,25 +135,29 @@ export async function getOverview(): Promise<{
 }> {
   const rows = await db.visits.toArray();
   const total = rows.length;
-  const domains = new Set(rows.map((r) => r.domain)).size;
-  const todayKey = getDayKey(Date.now());
-  const today = rows.filter((r) => r.dayKey === todayKey).length;
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const week = rows.filter((r) => r.visitTime >= weekAgo).length;
-  const days = new Set(rows.map((r) => r.dayKey)).size;
-  const dailyAvg = days > 0 ? Math.round(total / days) : 0;
+  const tk = todayKey();
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const domainSet = new Set<string>();
+  const daySet = new Set<string>();
   const hours = new Array(24).fill(0);
+  let today = 0;
+  let week = 0;
   let earliest = Infinity;
   let latest = 0;
   for (const r of rows) {
+    domainSet.add(r.domain);
+    daySet.add(r.dayKey);
+    if (r.dayKey === tk) today++;
+    if (r.visitTime >= weekAgo) week++;
     hours[new Date(r.visitTime).getHours()]++;
     if (r.visitTime < earliest) earliest = r.visitTime;
     if (r.visitTime > latest) latest = r.visitTime;
   }
+  const dailyAvg = daySet.size > 0 ? Math.round(total / daySet.size) : 0;
   const peakHour = total > 0 ? hours.indexOf(Math.max(...hours)) : -1;
   return {
     total,
-    domains,
+    domains: domainSet.size,
     today,
     week,
     dailyAvg,

@@ -11,6 +11,14 @@ const EN_MONTH_ABBR = [
 // 索引 = Date.getDay()（0=周日）
 const ZH_WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const EN_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// 窄格式（日历表头 / 热力图行标签），索引 = Date.getDay()
+export const ZH_WEEKDAY_NARROW = ['日', '一', '二', '三', '四', '五', '六'];
+export const EN_WEEKDAY_NARROW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+/** 周起始：中文周一(1) / 英文周日(0)。 */
+export function weekStartForLocale(locale: Locale): 0 | 1 {
+  return locale === 'zh' ? 1 : 0;
+}
 
 /** 周几名：zh 周一…周日 / en Mon…Sun。getDay 为 Date.getDay()（0=周日）。 */
 export function weekdayName(getDay: number, locale: Locale): string {

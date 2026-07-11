@@ -15,3 +15,7 @@ export function getDayKey(timestamp: number): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
+
+/** 今天 / 昨天的 dayKey（本地时区）。 */
+export const todayKey = (): string => getDayKey(Date.now());
+export const yesterdayKey = (): string => getDayKey(Date.now() - 86_400_000);

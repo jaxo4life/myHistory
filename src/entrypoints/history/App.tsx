@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useDeferredValue, useState } from 'react';
 import { Calendar } from '../../components/Calendar';
 import { HistoryList } from '../../components/HistoryList';
 import { ThemeToggle } from '../../components/ThemeToggle';
@@ -10,9 +10,10 @@ import { DaySummary } from '../../components/DaySummary';
 import { AnalyticsView } from '../../components/AnalyticsView';
 import { ManageView } from '../../components/ManageView';
 import { getByDayKey, searchVisits, deleteVisits } from '../../db/queries';
-import { getDayKey } from '../../lib/url-utils';
+import { todayKey } from '../../lib/url-utils';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getSettings, type Settings } from '../../store/settings';
+import { useSettingsVersion } from '../../store/useSettingsVersion';
 import { useI18n, catLabel } from '../../i18n';
 
 type View = 'history' | 'analytics' | 'manage';
@@ -21,7 +22,7 @@ export function App() {
   const { t, locale } = useI18n();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [view, setView] = useState<View>('history');
-  const [selectedDayKey, setSelectedDayKey] = useState<string>(getDayKey(Date.now()));
+  const [selectedDayKey, setSelectedDayKey] = useState<string>(todayKey());
   const [searchQuery, setSearchQuery] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -29,24 +30,19 @@ export function App() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   // 分类规则存在 chrome.storage，liveQuery 默认只监听 db；用 version 在 storage 变化时驱动重算
-  const [settingsVersion, setSettingsVersion] = useState(0);
+  const settingsVersion = useSettingsVersion();
 
   useEffect(() => {
     getSettings().then(setSettings);
   }, []);
 
-  useEffect(() => {
-    const handler = () => setSettingsVersion((v) => v + 1);
-    chrome.storage.onChanged.addListener(handler);
-    return () => chrome.storage.onChanged.removeListener(handler);
-  }, []);
-
   const visits = useLiveQuery(() => getByDayKey(selectedDayKey), [selectedDayKey]);
   const hasFilter =
     searchQuery.trim() !== '' || domainFilter.trim() !== '' || categoryFilter !== '' || tagFilter !== '';
+  const deferredQuery = useDeferredValue(searchQuery);
   const searchResults = useLiveQuery(
-    () => searchVisits({ query: searchQuery, domain: domainFilter, category: categoryFilter, tag: tagFilter }),
-    [searchQuery, domainFilter, categoryFilter, tagFilter, settingsVersion],
+    () => searchVisits({ query: deferredQuery, domain: domainFilter, category: categoryFilter, tag: tagFilter }),
+    [deferredQuery, domainFilter, categoryFilter, tagFilter, settingsVersion],
   );
   const listVisits = hasFilter ? searchResults : visits;
 

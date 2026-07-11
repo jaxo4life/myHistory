@@ -1,13 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { buildMonthGrid, formatDayKey, weekdayLabels } from '../src/lib/calendar';
+import { buildMonthGrid, weekdayLabels } from '../src/lib/calendar';
+import { getDayKey } from '../src/lib/url-utils';
 
 const TODAY = new Date(2026, 2, 15, 12).getTime(); // 2026-03-15
-
-describe('formatDayKey', () => {
-  it('把 Date 转 YYYY-MM-DD', () => {
-    expect(formatDayKey(new Date(2026, 2, 5))).toBe('2026-03-05');
-  });
-});
 
 describe('buildMonthGrid', () => {
   it('生成 42 格（6×7）', () => {
@@ -37,7 +32,7 @@ describe('buildMonthGrid', () => {
   it('所有 dayKey 与 date 自洽', () => {
     const grid = buildMonthGrid(2026, 2, 1, TODAY);
     for (const cell of grid) {
-      expect(cell.dayKey).toBe(formatDayKey(cell.date));
+      expect(cell.dayKey).toBe(getDayKey(cell.date.getTime()));
     }
   });
 });
