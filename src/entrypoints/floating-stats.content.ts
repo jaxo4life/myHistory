@@ -1,6 +1,6 @@
 const POS_KEY = 'history-plus:floating-pos';
 const SETTINGS_KEY = 'history-plus:settings';
-const CARD_WIDTH = 168;
+const CARD_WIDTH = 180;
 const DRAG_THRESHOLD = 5;
 const REFRESH_DEBOUNCE = 500;
 
@@ -11,8 +11,8 @@ type StatsResponse =
   | { error: true };
 
 const LABELS: Record<Locale, { today: string; site: string; top: string }> = {
-  zh: { today: '今日访问', site: '本站累计', top: '今日主力' },
-  en: { today: 'Today', site: 'This site', top: 'Top' },
+  zh: { today: '今日总访问', site: '本站累计', top: '今日主力' },
+  en: { today: 'Today', site: 'This site', top: 'Top cat' },
 };
 
 async function fetchStats(domain: string): Promise<StatsResponse> {
@@ -34,33 +34,32 @@ async function fetchStats(domain: string): Promise<StatsResponse> {
 interface Widget {
   host: HTMLDivElement;
   card: HTMLDivElement;
-  labels: { today: HTMLSpanElement; site: HTMLSpanElement; top: HTMLSpanElement };
-  values: { today: HTMLSpanElement; site: HTMLSpanElement; cat: HTMLSpanElement };
+  titles: { today: HTMLSpanElement; site: HTMLSpanElement; top: HTMLSpanElement };
+  values: { today: HTMLSpanElement; site: HTMLSpanElement; top: HTMLSpanElement };
 }
 
-function makeRow(key: string): {
-  row: HTMLDivElement;
-  label: HTMLSpanElement;
+function makeCell(key: string): {
+  cell: HTMLDivElement;
+  title: HTMLSpanElement;
   value: HTMLSpanElement;
 } {
-  const row = document.createElement('div');
-  row.className = 'row';
-  const label = document.createElement('span');
-  label.className = 'label';
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  const title = document.createElement('span');
+  title.className = 'cell-title';
   const value = document.createElement('span');
-  value.className = 'value';
+  value.className = 'cell-value';
   value.dataset.k = key;
   value.textContent = '–';
-  row.appendChild(label);
-  row.appendChild(value);
-  return { row, label, value };
+  cell.appendChild(title);
+  cell.appendChild(value);
+  return { cell, title, value };
 }
 
 function buildWidget(locale: Locale): Widget {
   const host = document.createElement('div');
   host.id = 'history-plus-floating-stats';
-  host.style.cssText =
-    'all:initial;position:fixed;z-index:2147483647;left:16px;bottom:16px;';
+  host.style.cssText = 'all:initial;position:fixed;z-index:2147483647;left:16px;bottom:16px;';
 
   const root = host.attachShadow({ mode: 'open' });
 
@@ -68,8 +67,8 @@ function buildWidget(locale: Locale): Widget {
   style.textContent = `
     .card {
       width: ${CARD_WIDTH}px;
-      padding: 7px 10px;
-      border-radius: 10px;
+      padding: 8px;
+      border-radius: 12px;
       background: rgba(20,20,22,0.82);
       backdrop-filter: blur(8px);
       color: #fff;
@@ -80,55 +79,60 @@ function buildWidget(locale: Locale): Widget {
       -webkit-user-select: none;
     }
     .card.dragging { cursor: grabbing; }
-    .row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-    .row + .row { margin-top: 1px; }
-    .label { color: rgba(255,255,255,0.7); }
-    .value { font-weight: 600; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .cell { display:flex; flex-direction:column; align-items:center; gap:2px; padding:3px 2px; border-radius:8px; }
+    .cell.full { grid-column:1 / -1; }
+    .cell-title { font-size:10px; color:rgba(255,255,255,0.6); letter-spacing:0.02em; }
+    .cell-value { font-size:16px; font-weight:700; line-height:1.15; }
+    .cell.full .cell-value { font-size:20px; }
   `;
   root.appendChild(style);
 
   const card = document.createElement('div');
   card.className = 'card';
-  const today = makeRow('today');
-  const site = makeRow('site');
-  const cat = makeRow('cat');
-  today.label.textContent = LABELS[locale].today;
-  site.label.textContent = LABELS[locale].site;
-  cat.label.textContent = LABELS[locale].top;
-  card.appendChild(today.row);
-  card.appendChild(site.row);
-  card.appendChild(cat.row);
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  const today = makeCell('today');
+  const top = makeCell('top');
+  const site = makeCell('site');
+  site.cell.classList.add('full');
+  today.title.textContent = LABELS[locale].today;
+  top.title.textContent = LABELS[locale].top;
+  site.title.textContent = LABELS[locale].site;
+  grid.appendChild(today.cell);
+  grid.appendChild(top.cell);
+  grid.appendChild(site.cell);
+  card.appendChild(grid);
   root.appendChild(card);
 
   return {
     host,
     card,
-    labels: { today: today.label, site: site.label, top: cat.label },
-    values: { today: today.value, site: site.value, cat: cat.value },
+    titles: { today: today.title, site: site.title, top: top.title },
+    values: { today: today.value, site: site.value, top: top.value },
   };
 }
 
 function render(widget: Widget, res: StatsResponse): void {
-  const { labels, values } = widget;
+  const { titles, values } = widget;
   if ('error' in res) {
     values.today.textContent = '–';
     values.site.textContent = '–';
-    values.cat.textContent = '–';
-    values.cat.style.color = '';
+    values.top.textContent = '–';
+    values.top.style.color = '';
     return;
   }
-  // 标签跟随 locale
-  labels.today.textContent = LABELS[res.locale].today;
-  labels.site.textContent = LABELS[res.locale].site;
-  labels.top.textContent = LABELS[res.locale].top;
+  titles.today.textContent = LABELS[res.locale].today;
+  titles.site.textContent = LABELS[res.locale].site;
+  titles.top.textContent = LABELS[res.locale].top;
   values.today.textContent = String(res.todayCount);
   values.site.textContent = String(res.siteCount);
   if (res.topCategory) {
-    values.cat.textContent = `${res.topCategory.icon} ${res.topCategory.name}`;
-    values.cat.style.color = res.topCategory.color;
+    values.top.textContent = `${res.topCategory.icon} ${res.topCategory.name}`;
+    values.top.style.color = res.topCategory.color;
   } else {
-    values.cat.textContent = '–';
-    values.cat.style.color = '';
+    values.top.textContent = '–';
+    values.top.style.color = '';
   }
 }
 
@@ -136,73 +140,13 @@ export default defineContentScript({
   matches: ['http://*/*', 'https://*/*'],
   async main() {
     const domain = location.hostname;
-
-    // 一次性读位置 + 语言
-    const data = await chrome.storage.local.get([POS_KEY, SETTINGS_KEY]);
-    const stored = data[POS_KEY] as { left: number; top: number } | undefined;
-    const locale = (
-      (data[SETTINGS_KEY] as { locale?: Locale } | undefined)?.locale ?? 'zh'
-    ) as Locale;
-
-    const widget = buildWidget(locale);
-    const { host, card } = widget;
-
-    if (stored && typeof stored.left === 'number' && typeof stored.top === 'number') {
-      host.style.left = `${stored.left}px`;
-      host.style.top = `${stored.top}px`;
-      host.style.bottom = 'auto';
-    }
-    document.documentElement.appendChild(host);
-
-    // —— 拖拽 ——
-    let dragging = false;
-    let moved = false;
-    let startX = 0;
-    let startY = 0;
-    let origLeft = 0;
-    let origTop = 0;
-
-    card.addEventListener('pointerdown', (e) => {
-      dragging = true;
-      moved = false;
-      startX = e.clientX;
-      startY = e.clientY;
-      const rect = host.getBoundingClientRect();
-      origLeft = rect.left;
-      origTop = rect.top;
-      card.classList.add('dragging');
-    });
-
-    document.addEventListener('pointermove', (e) => {
-      if (!dragging) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      if (!moved && Math.abs(dx) <= DRAG_THRESHOLD && Math.abs(dy) <= DRAG_THRESHOLD) return;
-      moved = true;
-      const maxLeft = window.innerWidth - host.offsetWidth;
-      const maxTop = window.innerHeight - host.offsetHeight;
-      const left = Math.max(0, Math.min(maxLeft, origLeft + dx));
-      const top = Math.max(0, Math.min(maxTop, origTop + dy));
-      host.style.left = `${left}px`;
-      host.style.top = `${top}px`;
-      host.style.bottom = 'auto';
-    });
-
-    document.addEventListener('pointerup', async () => {
-      if (!dragging) return;
-      dragging = false;
-      card.classList.remove('dragging');
-      if (moved) {
-        const left = parseFloat(host.style.left) || 0;
-        const top = parseFloat(host.style.top) || 0;
-        await chrome.storage.local.set({ [POS_KEY]: { left, top } });
-      }
-    });
-
-    // —— 刷新调度（无轮询：idle 一次 + visibility/storage 变化 debounce）——
+    let widget: Widget | null = null;
+    let abortController: AbortController | null = null;
     let timer: number | undefined;
+
     const refresh = () => {
-      fetchStats(domain).then((res) => render(widget, res));
+      const w = widget;
+      if (w) fetchStats(domain).then((res) => render(w, res));
     };
     const schedule = () => {
       if (timer !== undefined) window.clearTimeout(timer);
@@ -215,13 +159,117 @@ export default defineContentScript({
       else window.setTimeout(refresh, 200);
     };
 
-    kick();
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') schedule();
-    });
-    // 用户改语言/分类 → background 失效缓存 → 重新拉取并按新 locale 渲染
+    function mount(locale: Locale, pos: { left: number; top: number } | undefined) {
+      if (widget) return;
+      const w = buildWidget(locale);
+      widget = w;
+      if (pos && typeof pos.left === 'number' && typeof pos.top === 'number') {
+        w.host.style.left = `${pos.left}px`;
+        w.host.style.top = `${pos.top}px`;
+        w.host.style.bottom = 'auto';
+      }
+      document.documentElement.appendChild(w.host);
+
+      abortController = new AbortController();
+      const { signal } = abortController;
+
+      let dragging = false;
+      let moved = false;
+      let startX = 0;
+      let startY = 0;
+      let origLeft = 0;
+      let origTop = 0;
+
+      w.card.addEventListener(
+        'pointerdown',
+        (e) => {
+          dragging = true;
+          moved = false;
+          startX = e.clientX;
+          startY = e.clientY;
+          const rect = w.host.getBoundingClientRect();
+          origLeft = rect.left;
+          origTop = rect.top;
+          w.card.classList.add('dragging');
+        },
+        { signal },
+      );
+
+      document.addEventListener(
+        'pointermove',
+        (e) => {
+          if (!dragging) return;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          if (!moved && Math.abs(dx) <= DRAG_THRESHOLD && Math.abs(dy) <= DRAG_THRESHOLD) return;
+          moved = true;
+          const maxLeft = window.innerWidth - w.host.offsetWidth;
+          const maxTop = window.innerHeight - w.host.offsetHeight;
+          const left = Math.max(0, Math.min(maxLeft, origLeft + dx));
+          const top = Math.max(0, Math.min(maxTop, origTop + dy));
+          w.host.style.left = `${left}px`;
+          w.host.style.top = `${top}px`;
+          w.host.style.bottom = 'auto';
+        },
+        { signal },
+      );
+
+      document.addEventListener(
+        'pointerup',
+        async () => {
+          if (!dragging) return;
+          dragging = false;
+          w.card.classList.remove('dragging');
+          if (moved) {
+            const left = parseFloat(w.host.style.left) || 0;
+            const top = parseFloat(w.host.style.top) || 0;
+            await chrome.storage.local.set({ [POS_KEY]: { left, top } });
+          }
+        },
+        { signal },
+      );
+
+      kick();
+    }
+
+    function unmount() {
+      abortController?.abort();
+      abortController = null;
+      if (timer !== undefined) {
+        window.clearTimeout(timer);
+        timer = undefined;
+      }
+      widget?.host.remove();
+      widget = null;
+    }
+
+    async function readSettings() {
+      const data = await chrome.storage.local.get([POS_KEY, SETTINGS_KEY]);
+      const s = data[SETTINGS_KEY] as { locale?: Locale; floatingStats?: boolean } | undefined;
+      return {
+        pos: data[POS_KEY] as { left: number; top: number } | undefined,
+        locale: (s?.locale ?? 'zh') as Locale,
+        floating: s?.floatingStats ?? true,
+      };
+    }
+
+    const init = await readSettings();
+    if (init.floating) mount(init.locale, init.pos);
+
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === 'local' && changes[SETTINGS_KEY]) schedule();
+      if (area !== 'local' || !changes[SETTINGS_KEY]) return;
+      void readSettings().then((cur) => {
+        if (!cur.floating) {
+          if (widget) unmount();
+          return;
+        }
+        if (!widget) mount(cur.locale, cur.pos);
+        else schedule();
+      });
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && widget) schedule();
     });
   },
 });

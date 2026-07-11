@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getOverview, getAllVisits, clearAllVisits } from '../db/queries';
 import { visitsToCSV, visitsToJSON, downloadText } from '../lib/exporter';
+import { getSettings, saveSettings } from '../store/settings';
 import { Modal } from './Modal';
 import { CategoryManager } from './CategoryManager';
 import { useI18n } from '../i18n';
@@ -10,6 +11,17 @@ export function ManageView() {
   const { t } = useI18n();
   const stats = useLiveQuery(() => getOverview(), []);
   const [clearOpen, setClearOpen] = useState(false);
+  const [floating, setFloating] = useState(true);
+
+  useEffect(() => {
+    getSettings().then((s) => setFloating(s.floatingStats ?? true));
+  }, []);
+
+  async function toggleFloating() {
+    const next = !floating;
+    setFloating(next);
+    await saveSettings({ floatingStats: next });
+  }
 
   async function exportAll(format: 'csv' | 'json') {
     const data = await getAllVisits();
@@ -59,6 +71,29 @@ export function ManageView() {
               className="rounded bg-red-500/90 px-3 py-1.5 text-sm text-white transition-colors hover:bg-red-500"
             >
               {t('manage.clearAll')}
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-6 rounded-2xl bg-card p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="mb-1 text-sm font-semibold text-fg">{t('manage.floating')}</div>
+              <div className="text-xs text-muted">{t('manage.floatingHint')}</div>
+            </div>
+            <button
+              onClick={toggleFloating}
+              role="switch"
+              aria-checked={floating}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                floating ? 'bg-accent' : 'bg-border'
+              }`}
+            >
+              <span
+                className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  floating ? 'translate-x-5' : ''
+                }`}
+              />
             </button>
           </div>
         </div>
