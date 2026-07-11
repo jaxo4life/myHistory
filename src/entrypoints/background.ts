@@ -1,7 +1,7 @@
 import { getDomain, getDayKey } from '../lib/url-utils';
 import { shouldRecord } from '../lib/privacy';
 import { addVisit, getTodayCount, getDomainCount, getTodayTopCategory } from '../db/queries';
-import { getBlacklist, getSettings } from '../store/settings';
+import { getBlacklist, getSettings, saveSettings } from '../store/settings';
 import { catLabel } from '../i18n/categories';
 
 const BACKFILL_FLAG = 'history-plus:backfilled';
@@ -87,11 +87,65 @@ export default defineBackground(() => {
     }
   });
 
+  // —— 右键菜单：按网站控制悬浮统计窗显示 ——
+  const MENU_ID = 'toggle-floating-stats';
+  const MENU_TITLE: Record<'zh' | 'en', { hide: string; show: string }> = {
+    zh: { hide: '隐藏此网站的悬浮窗', show: '显示此网站的悬浮窗' },
+    en: { hide: 'Hide on this site', show: 'Show on this site' },
+  };
+  const refreshMenu = () => {
+    const cm = chrome.contextMenus as typeof chrome.contextMenus & { refresh?: () => void };
+    cm.refresh?.();
+  };
+
+  // onShown / refresh 是较新的动态菜单 API，@types/chrome 尚未声明，统一断言
+  const cmDyn = chrome.contextMenus as typeof chrome.contextMenus & {
+    onShown?: chrome.events.Event<
+      (info: chrome.contextMenus.OnClickData, tab: chrome.tabs.Tab) => void
+    >;
+  };
+
+  async function updateMenuFor(domain: string) {
+    const s = await getSettings();
+    const hidden = (s.hiddenSites ?? []).includes(domain);
+    const locale = s.locale ?? 'zh';
+    chrome.contextMenus.update(MENU_ID, {
+      title: hidden ? MENU_TITLE[locale].show : MENU_TITLE[locale].hide,
+    });
+  }
+
+  cmDyn.onShown?.addListener((info, tab) => {
+    const url = tab?.url || info.pageUrl;
+    if (!url) return;
+    try {
+      void updateMenuFor(new URL(url).hostname).then(refreshMenu);
+    } catch {
+      /* 非法 url，忽略 */
+    }
+  });
+
+  chrome.contextMenus.onClicked.addListener(async (info) => {
+    if (info.menuItemId !== MENU_ID || !info.pageUrl) return;
+    try {
+      const domain = new URL(info.pageUrl).hostname;
+      const s = await getSettings();
+      const list = new Set(s.hiddenSites ?? []);
+      if (list.has(domain)) list.delete(domain);
+      else list.add(domain);
+      await saveSettings({ hiddenSites: Array.from(list) });
+    } catch {
+      /* 忽略 */
+    }
+  });
+
   chrome.action.onClicked.addListener(() => {
     chrome.tabs.create({ url: chrome.runtime.getURL('/history.html') });
   });
 
   chrome.runtime.onInstalled.addListener(() => {
+    chrome.contextMenus.removeAll(() => {
+      chrome.contextMenus.create({ id: MENU_ID, title: '悬浮统计窗', contexts: ['all'] });
+    });
     backfillFromHistory().catch((e) => console.error('[history-plus] backfill failed', e));
   });
 

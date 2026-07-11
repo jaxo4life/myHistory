@@ -10,7 +10,7 @@ export default defineConfig({
     action: {
       default_title: 'myHistory',
     },
-    permissions: ['webNavigation', 'tabs', 'history', 'storage'],
+    permissions: ['webNavigation', 'tabs', 'history', 'storage', 'contextMenus'],
     host_permissions: ['<all_urls>'],
   },
 });

@@ -14,6 +14,7 @@ export interface Settings {
   categoryVersion?: number;
   locale?: 'zh' | 'en';
   floatingStats?: boolean;
+  hiddenSites?: string[];
 }
 
 const KEY = 'history-plus:settings';
@@ -25,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
   categories: DEFAULT_CATEGORIES,
   categoryVersion: CATEGORY_RULES_VERSION,
   floatingStats: true,
+  hiddenSites: [],
 };
 
 export async function getSettings(): Promise<Settings> {

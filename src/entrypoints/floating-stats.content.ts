@@ -245,11 +245,16 @@ export default defineContentScript({
 
     async function readSettings() {
       const data = await chrome.storage.local.get([POS_KEY, SETTINGS_KEY]);
-      const s = data[SETTINGS_KEY] as { locale?: Locale; floatingStats?: boolean } | undefined;
+      const s = data[SETTINGS_KEY] as {
+        locale?: Locale;
+        floatingStats?: boolean;
+        hiddenSites?: string[];
+      } | undefined;
+      const hiddenSites = s?.hiddenSites ?? [];
       return {
         pos: data[POS_KEY] as { left: number; top: number } | undefined,
         locale: (s?.locale ?? 'zh') as Locale,
-        floating: s?.floatingStats ?? true,
+        floating: (s?.floatingStats ?? true) && !hiddenSites.includes(domain),
       };
     }
 
