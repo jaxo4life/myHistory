@@ -1,12 +1,19 @@
 const POS_KEY = 'history-plus:floating-pos';
-const CARD_WIDTH = 200;
+const SETTINGS_KEY = 'history-plus:settings';
+const CARD_WIDTH = 168;
 const DRAG_THRESHOLD = 5;
 const REFRESH_DEBOUNCE = 500;
 
+type Locale = 'zh' | 'en';
 type TopCategory = { name: string; icon: string; color: string };
 type StatsResponse =
-  | { todayCount: number; siteCount: number; topCategory: TopCategory | null }
+  | { todayCount: number; siteCount: number; topCategory: TopCategory | null; locale: Locale }
   | { error: true };
+
+const LABELS: Record<Locale, { today: string; site: string; top: string }> = {
+  zh: { today: '今日访问', site: '本站累计', top: '今日主力' },
+  en: { today: 'Today', site: 'This site', top: 'Top' },
+};
 
 async function fetchStats(domain: string): Promise<StatsResponse> {
   // 最多重试 2 次（覆盖 SW 冷启动 / backfill 期间的暂时性失败）
@@ -27,27 +34,29 @@ async function fetchStats(domain: string): Promise<StatsResponse> {
 interface Widget {
   host: HTMLDivElement;
   card: HTMLDivElement;
-  elToday: HTMLElement;
-  elSite: HTMLElement;
-  elCat: HTMLElement;
+  labels: { today: HTMLSpanElement; site: HTMLSpanElement; top: HTMLSpanElement };
+  values: { today: HTMLSpanElement; site: HTMLSpanElement; cat: HTMLSpanElement };
 }
 
-function makeRow(label: string, key: string): { row: HTMLDivElement; value: HTMLSpanElement } {
+function makeRow(key: string): {
+  row: HTMLDivElement;
+  label: HTMLSpanElement;
+  value: HTMLSpanElement;
+} {
   const row = document.createElement('div');
   row.className = 'row';
-  const lab = document.createElement('span');
-  lab.className = 'label';
-  lab.textContent = label;
-  const val = document.createElement('span');
-  val.className = 'value';
-  val.dataset.k = key;
-  val.textContent = '–';
-  row.appendChild(lab);
-  row.appendChild(val);
-  return { row, value: val };
+  const label = document.createElement('span');
+  label.className = 'label';
+  const value = document.createElement('span');
+  value.className = 'value';
+  value.dataset.k = key;
+  value.textContent = '–';
+  row.appendChild(label);
+  row.appendChild(value);
+  return { row, label, value };
 }
 
-function buildWidget(): Widget {
+function buildWidget(locale: Locale): Widget {
   const host = document.createElement('div');
   host.id = 'history-plus-floating-stats';
   host.style.cssText =
@@ -59,12 +68,12 @@ function buildWidget(): Widget {
   style.textContent = `
     .card {
       width: ${CARD_WIDTH}px;
-      padding: 10px 12px;
-      border-radius: 12px;
+      padding: 7px 10px;
+      border-radius: 10px;
       background: rgba(20,20,22,0.82);
       backdrop-filter: blur(8px);
       color: #fff;
-      font: 12px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font: 11px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
       box-shadow: 0 4px 16px rgba(0,0,0,0.2);
       cursor: default;
       user-select: none;
@@ -72,7 +81,7 @@ function buildWidget(): Widget {
     }
     .card.dragging { cursor: grabbing; }
     .row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-    .row + .row { margin-top: 2px; }
+    .row + .row { margin-top: 1px; }
     .label { color: rgba(255,255,255,0.7); }
     .value { font-weight: 600; }
   `;
@@ -80,34 +89,46 @@ function buildWidget(): Widget {
 
   const card = document.createElement('div');
   card.className = 'card';
-  const today = makeRow('今日访问', 'today');
-  const site = makeRow('本站累计', 'site');
-  const cat = makeRow('今日主力', 'cat');
+  const today = makeRow('today');
+  const site = makeRow('site');
+  const cat = makeRow('cat');
+  today.label.textContent = LABELS[locale].today;
+  site.label.textContent = LABELS[locale].site;
+  cat.label.textContent = LABELS[locale].top;
   card.appendChild(today.row);
   card.appendChild(site.row);
   card.appendChild(cat.row);
   root.appendChild(card);
 
-  return { host, card, elToday: today.value, elSite: site.value, elCat: cat.value };
+  return {
+    host,
+    card,
+    labels: { today: today.label, site: site.label, top: cat.label },
+    values: { today: today.value, site: site.value, cat: cat.value },
+  };
 }
 
 function render(widget: Widget, res: StatsResponse): void {
-  const { elToday, elSite, elCat } = widget;
+  const { labels, values } = widget;
   if ('error' in res) {
-    elToday.textContent = '–';
-    elSite.textContent = '–';
-    elCat.textContent = '–';
-    elCat.style.color = '';
+    values.today.textContent = '–';
+    values.site.textContent = '–';
+    values.cat.textContent = '–';
+    values.cat.style.color = '';
     return;
   }
-  elToday.textContent = String(res.todayCount);
-  elSite.textContent = String(res.siteCount);
+  // 标签跟随 locale
+  labels.today.textContent = LABELS[res.locale].today;
+  labels.site.textContent = LABELS[res.locale].site;
+  labels.top.textContent = LABELS[res.locale].top;
+  values.today.textContent = String(res.todayCount);
+  values.site.textContent = String(res.siteCount);
   if (res.topCategory) {
-    elCat.textContent = `${res.topCategory.icon} ${res.topCategory.name}`;
-    elCat.style.color = res.topCategory.color;
+    values.cat.textContent = `${res.topCategory.icon} ${res.topCategory.name}`;
+    values.cat.style.color = res.topCategory.color;
   } else {
-    elCat.textContent = '–';
-    elCat.style.color = '';
+    values.cat.textContent = '–';
+    values.cat.style.color = '';
   }
 }
 
@@ -115,13 +136,17 @@ export default defineContentScript({
   matches: ['http://*/*', 'https://*/*'],
   async main() {
     const domain = location.hostname;
-    const widget = buildWidget();
+
+    // 一次性读位置 + 语言
+    const data = await chrome.storage.local.get([POS_KEY, SETTINGS_KEY]);
+    const stored = data[POS_KEY] as { left: number; top: number } | undefined;
+    const locale = (
+      (data[SETTINGS_KEY] as { locale?: Locale } | undefined)?.locale ?? 'zh'
+    ) as Locale;
+
+    const widget = buildWidget(locale);
     const { host, card } = widget;
 
-    // 应用持久化位置（有则用 left/top，无则保持默认 left/bottom）
-    const stored = (await chrome.storage.local.get(POS_KEY))[POS_KEY] as
-      | { left: number; top: number }
-      | undefined;
     if (stored && typeof stored.left === 'number' && typeof stored.top === 'number') {
       host.style.left = `${stored.left}px`;
       host.style.top = `${stored.top}px`;
@@ -174,7 +199,7 @@ export default defineContentScript({
       }
     });
 
-    // —— 刷新调度（无轮询：idle 一次 + visibilitychange debounce）——
+    // —— 刷新调度（无轮询：idle 一次 + visibility/storage 变化 debounce）——
     let timer: number | undefined;
     const refresh = () => {
       fetchStats(domain).then((res) => render(widget, res));
@@ -193,6 +218,10 @@ export default defineContentScript({
     kick();
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') schedule();
+    });
+    // 用户改语言/分类 → background 失效缓存 → 重新拉取并按新 locale 渲染
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes[SETTINGS_KEY]) schedule();
     });
   },
 });

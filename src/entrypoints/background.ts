@@ -1,7 +1,8 @@
 import { getDomain, getDayKey } from '../lib/url-utils';
 import { shouldRecord } from '../lib/privacy';
 import { addVisit, getTodayCount, getDomainCount, getTodayTopCategory } from '../db/queries';
-import { getBlacklist, getCategories } from '../store/settings';
+import { getBlacklist, getSettings } from '../store/settings';
+import { catLabel } from '../i18n/categories';
 
 const BACKFILL_FLAG = 'history-plus:backfilled';
 const SETTINGS_KEY = 'history-plus:settings';
@@ -13,6 +14,7 @@ export default defineBackground(() => {
   let floatGlobal: {
     todayCount: number;
     topCategory: { name: string; icon: string; color: string } | null;
+    locale: 'zh' | 'en';
     at: number;
   } | null = null;
   const floatDomain = new Map<string, { count: number; at: number }>();
@@ -34,6 +36,7 @@ export default defineBackground(() => {
         todayCount: number;
         siteCount: number;
         topCategory: { name: string; icon: string; color: string } | null;
+        locale: 'zh' | 'en';
       }
     | { error: true }
   > {
@@ -42,15 +45,19 @@ export default defineBackground(() => {
       // 全局：命中缓存直接用，否则重算一次
       let todayCount: number;
       let topCategory: { name: string; icon: string; color: string } | null;
+      let locale: 'zh' | 'en';
       if (floatGlobal && now - floatGlobal.at < FLOAT_TTL) {
         todayCount = floatGlobal.todayCount;
         topCategory = floatGlobal.topCategory;
+        locale = floatGlobal.locale;
       } else {
-        const rules = await getCategories();
+        const settings = await getSettings();
+        const rules = settings.categories;
+        locale = settings.locale ?? 'zh';
         const [tc, cat] = await Promise.all([getTodayCount(), getTodayTopCategory(rules)]);
         todayCount = tc;
-        topCategory = cat;
-        floatGlobal = { todayCount, topCategory, at: now };
+        topCategory = cat ? { ...cat, name: catLabel(cat.name, locale) } : null;
+        floatGlobal = { todayCount, topCategory, locale, at: now };
       }
       // per-domain：命中缓存直接用，否则索引 count
       let siteCount: number;
@@ -61,7 +68,7 @@ export default defineBackground(() => {
         siteCount = await getDomainCount(domain);
         floatDomain.set(domain, { count: siteCount, at: now });
       }
-      return { todayCount, siteCount, topCategory };
+      return { todayCount, siteCount, topCategory, locale };
     } catch {
       return { error: true };
     }
@@ -74,7 +81,10 @@ export default defineBackground(() => {
     return blacklistCache;
   };
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes[SETTINGS_KEY]) blacklistCache = null;
+    if (area === 'local' && changes[SETTINGS_KEY]) {
+      blacklistCache = null;
+      invalidateFloatGlobal();
+    }
   });
 
   chrome.action.onClicked.addListener(() => {
