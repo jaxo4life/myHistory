@@ -136,10 +136,13 @@ export default defineBackground(() => {
     chrome.tabs.create({ url: chrome.runtime.getURL('/history.html') });
   });
 
+  // SW 每次启动都确保菜单存在：不依赖 onInstalled，避免「覆盖文件 + 重启」未触发
+  // onInstalled 时菜单缺失（contextMenus 虽持久化，但旧版从未创建过此项）
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({ id: MENU_ID, title: '悬浮统计窗', contexts: ['all'] });
+  });
+
   chrome.runtime.onInstalled.addListener(() => {
-    chrome.contextMenus.removeAll(() => {
-      chrome.contextMenus.create({ id: MENU_ID, title: '悬浮统计窗', contexts: ['all'] });
-    });
     backfillFromHistory().catch((e) => console.error('[history-plus] backfill failed', e));
   });
 
