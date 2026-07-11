@@ -214,3 +214,7 @@ export async function getAllTags(): Promise<{ tag: string; count: number }[]> {
     .map(([tag, count]) => ({ tag, count }))
     .sort((a, b) => b.count - a.count);
 }
+
+export async function getTodayCount(): Promise<number> {
+  return db.visits.where('dayKey').equals(todayKey()).count();
+}
