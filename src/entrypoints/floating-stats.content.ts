@@ -16,7 +16,6 @@ const LABELS: Record<Locale, { today: string; site: string; top: string }> = {
 };
 
 async function fetchStats(domain: string): Promise<StatsResponse> {
-  // 最多重试 2 次（覆盖 SW 冷启动 / backfill 期间的暂时性失败）
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const res = await chrome.runtime.sendMessage({ type: 'FLOATING_STATS', domain });
@@ -24,7 +23,6 @@ async function fetchStats(domain: string): Promise<StatsResponse> {
         return res as StatsResponse;
       }
     } catch {
-      // messaging 失败，落入重试
     }
     if (attempt === 0) await new Promise((r) => setTimeout(r, 1000));
   }
@@ -266,14 +264,12 @@ export default defineContentScript({
         hiddenSites?: string[];
       } | undefined;
       const hiddenSites = s?.hiddenSites ?? [];
-      // per-domain 位置：POS_KEY 存 { [domain]: {left,top} }；
-      // 兼容旧全局格式 {left,top}（升级后各站沿用旧位置，直到单独拖拽）
       let pos: { left: number; top: number } | undefined;
       const rawPos = data[POS_KEY];
       if (rawPos && typeof rawPos === 'object') {
         const r = rawPos as Record<string, unknown>;
         if (typeof r.left === 'number' && typeof r.top === 'number') {
-          pos = { left: r.left, top: r.top }; // 旧全局格式
+          pos = { left: r.left, top: r.top };
         } else {
           const entry = r[domain] as { left?: number; top?: number } | undefined;
           if (entry && typeof entry.left === 'number' && typeof entry.top === 'number') {

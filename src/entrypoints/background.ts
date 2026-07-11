@@ -9,7 +9,6 @@ const SETTINGS_KEY = 'history-plus:settings';
 const DEDUP_MS = 1500;
 
 export default defineBackground(() => {
-  // —— 悬浮统计窗：内存缓存（多 tab 单点去重）——
   const FLOAT_TTL = 5000;
   let floatGlobal: {
     todayCount: number;
@@ -26,7 +25,7 @@ export default defineBackground(() => {
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.type === 'FLOATING_STATS') {
       handleFloatingStats(typeof msg.domain === 'string' ? msg.domain : '').then(sendResponse);
-      return true; // 异步响应
+      return true;
     }
     return false;
   });
@@ -42,7 +41,6 @@ export default defineBackground(() => {
   > {
     const now = Date.now();
     try {
-      // 全局：命中缓存直接用，否则重算一次
       let todayCount: number;
       let topCategory: { name: string; icon: string; color: string } | null;
       let locale: 'zh' | 'en';
@@ -59,7 +57,7 @@ export default defineBackground(() => {
         topCategory = cat ? { ...cat, name: catLabel(cat.name, locale) } : null;
         floatGlobal = { todayCount, topCategory, locale, at: now };
       }
-      // per-domain：命中缓存直接用，否则索引 count
+
       let siteCount: number;
       const dc = floatDomain.get(domain);
       if (dc && now - dc.at < FLOAT_TTL) {
@@ -87,7 +85,6 @@ export default defineBackground(() => {
     }
   });
 
-  // —— 右键菜单：按网站控制悬浮统计窗显示 ——
   const MENU_ID = 'toggle-floating-stats';
   const MENU_TITLE: Record<'zh' | 'en', { hide: string; show: string }> = {
     zh: { hide: '隐藏此网站的悬浮窗', show: '显示此网站的悬浮窗' },
@@ -98,7 +95,6 @@ export default defineBackground(() => {
     cm.refresh?.();
   };
 
-  // onShown / refresh 是较新的动态菜单 API，@types/chrome 尚未声明，统一断言
   const cmDyn = chrome.contextMenus as typeof chrome.contextMenus & {
     onShown?: chrome.events.Event<
       (info: chrome.contextMenus.OnClickData, tab: chrome.tabs.Tab) => void
@@ -120,7 +116,6 @@ export default defineBackground(() => {
     try {
       void updateMenuFor(new URL(url).hostname).then(refreshMenu);
     } catch {
-      /* 非法 url，忽略 */
     }
   });
 
@@ -134,7 +129,6 @@ export default defineBackground(() => {
       else list.add(domain);
       await saveSettings({ hiddenSites: Array.from(list) });
     } catch {
-      /* 忽略 */
     }
   });
 
