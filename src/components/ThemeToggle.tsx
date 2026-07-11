@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { getSettings, saveSettings, type Settings } from '../store/settings';
+import { useI18n } from '../i18n';
 
 /** 在 <html> 上切换 .dark 类，并持久化到 chrome.storage。纯图标按钮。 */
 export function ThemeToggle() {
+  const { t } = useI18n();
   const [theme, setTheme] = useState<Settings['theme']>('dark');
 
   useEffect(() => {
@@ -27,8 +29,8 @@ export function ThemeToggle() {
     <button
       onClick={toggle}
       className="rounded-lg p-2 text-fg transition-colors hover:bg-card"
-      title={theme === 'dark' ? '切换到浅色' : '切换到深色'}
-      aria-label="切换主题"
+      title={t(theme === 'dark' ? 'theme.toLight' : 'theme.toDark')}
+      aria-label={t('theme.toggle')}
     >
       {theme === 'dark' ? (
         <svg

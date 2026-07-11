@@ -6,7 +6,7 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
     name: 'myHistory',
-    description: '开源、纯本地、可审计的浏览历史管理扩展',
+    description: 'Open-source, fully local, auditable browsing history manager',
     version: '0.1.0',
     action: {
       default_title: 'myHistory',

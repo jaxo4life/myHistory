@@ -1,15 +1,17 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getByDayKey } from '../db/queries';
+import { useI18n } from '../i18n';
 
 /** 左栏日历下方的「当日概览」：当天访问数 + 最常去域名。 */
 export function DaySummary({ dayKey }: { dayKey: string }) {
+  const { t } = useI18n();
   const visits = useLiveQuery(() => getByDayKey(dayKey), [dayKey]);
 
   if (visits === undefined) return null;
 
   if (visits.length === 0) {
     return (
-      <div className="rounded-xl bg-card p-3 text-xs text-muted">当天无浏览记录</div>
+      <div className="rounded-xl bg-card p-3 text-xs text-muted">{t('daySummary.empty')}</div>
     );
   }
 
@@ -23,10 +25,10 @@ export function DaySummary({ dayKey }: { dayKey: string }) {
     <div className="rounded-xl bg-card p-3">
       <div className="flex items-baseline gap-1.5">
         <span className="text-2xl font-bold tabular-nums text-fg">{visits.length}</span>
-        <span className="text-xs text-muted">条访问</span>
+        <span className="text-xs text-muted">{t('daySummary.count')}</span>
       </div>
       <div className="mt-1 truncate text-xs text-muted" title={top[0]}>
-        最常去 <span className="text-fg">{top[0]}</span> · {top[1]} 次
+        {t('daySummary.topDomain', { domain: top[0], count: top[1] })}
       </div>
     </div>
   );

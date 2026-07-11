@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Visit } from '../types/visit';
 import { deleteVisit, updateVisitTags } from '../db/queries';
 import { Modal } from './Modal';
+import { useI18n } from '../i18n';
 
 function formatTime(ms: number): string {
   const d = new Date(ms);
@@ -23,6 +24,7 @@ export function HistoryItem({
   onToggleSelect,
   onTagClick,
 }: ItemProps) {
+  const { t } = useI18n();
   const [tagModal, setTagModal] = useState(false);
   const tags = visit.tags ?? [];
   const hasTags = tags.length > 0;
@@ -37,7 +39,7 @@ export function HistoryItem({
   }
 
   function removeTag(tag: string) {
-    updateVisitTags(visit.id!, (visit.tags ?? []).filter((t) => t !== tag));
+    updateVisitTags(visit.id!, (visit.tags ?? []).filter((x) => x !== tag));
   }
 
   return (
@@ -74,18 +76,9 @@ export function HistoryItem({
               target="_blank"
               rel="noreferrer"
               className="rounded-lg p-2 text-muted transition-colors hover:bg-border hover:text-fg"
-              title="打开"
+              title={t('historyItem.openTitle')}
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                 <polyline points="15 3 21 3 21 9" />
                 <line x1="10" y1="14" x2="21" y2="3" />
@@ -96,18 +89,9 @@ export function HistoryItem({
               className={`relative rounded-lg p-2 transition-colors ${
                 hasTags ? 'text-accent' : 'text-muted hover:text-fg'
               }`}
-              title={hasTags ? `标签：${tags.join(', ')}` : '编辑标签'}
+              title={hasTags ? t('historyItem.tagTitle', { tags: tags.join(', ') }) : t('historyItem.editTagTitle')}
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
                 <line x1="7" y1="7" x2="7.01" y2="7" />
               </svg>
@@ -120,18 +104,9 @@ export function HistoryItem({
             <button
               onClick={() => deleteVisit(visit.id!)}
               className="rounded-lg p-2 text-muted transition-colors hover:bg-border hover:text-red-400"
-              title="删除"
+              title={t('historyItem.deleteTitle')}
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="3 6 5 6 21 6" />
                 <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
               </svg>
@@ -141,20 +116,20 @@ export function HistoryItem({
       </div>
       {hasTags && (
         <div className="flex flex-wrap gap-1 px-3 pb-2">
-          {tags.map((t) => (
+          {tags.map((tg) => (
             <button
-              key={t}
-              onClick={() => onTagClick?.(t)}
+              key={tg}
+              onClick={() => onTagClick?.(tg)}
               className="rounded bg-card px-1.5 py-0.5 text-[10px] text-muted transition-colors hover:text-accent"
             >
-              #{t}
+              #{tg}
             </button>
           ))}
         </div>
       )}
 
       {tagModal && (
-        <Modal title="编辑标签" onClose={() => setTagModal(false)}>
+        <Modal title={t('historyItem.tagModal.title')} onClose={() => setTagModal(false)}>
           <TagEditor visit={visit} onAdd={addTags} onRemove={removeTag} />
         </Modal>
       )}
@@ -171,20 +146,21 @@ function TagEditor({
   onAdd: (input: string) => void;
   onRemove: (tag: string) => void;
 }) {
+  const { t } = useI18n();
   const [input, setInput] = useState('');
   const tags = visit.tags ?? [];
 
   return (
     <div>
       <div className="mb-3 flex min-h-[2rem] flex-wrap content-start gap-1">
-        {tags.length === 0 && <span className="self-center text-xs text-muted">暂无标签</span>}
-        {tags.map((t) => (
+        {tags.length === 0 && <span className="self-center text-xs text-muted">{t('historyItem.tagModal.empty')}</span>}
+        {tags.map((tg) => (
           <span
-            key={t}
+            key={tg}
             className="inline-flex items-center gap-1 rounded bg-card px-2 py-0.5 text-xs text-fg ring-1 ring-border"
           >
-            #{t}
-            <button onClick={() => onRemove(t)} className="text-muted hover:text-fg" title="移除">
+            #{tg}
+            <button onClick={() => onRemove(tg)} className="text-muted hover:text-fg" title={t('historyItem.tagModal.removeTitle')}>
               ×
             </button>
           </span>
@@ -200,7 +176,7 @@ function TagEditor({
               setInput('');
             }
           }}
-          placeholder="输入标签，回车添加（逗号分隔多个）"
+          placeholder={t('historyItem.tagInput.placeholder')}
           className="min-w-0 flex-1 rounded bg-card px-2 py-1 text-sm text-fg outline-none ring-1 ring-border focus:ring-accent"
           autoFocus
         />
@@ -211,7 +187,7 @@ function TagEditor({
           }}
           className="rounded bg-accent px-3 py-1 text-sm text-white transition-opacity hover:opacity-90"
         >
-          添加
+          {t('common.add')}
         </button>
       </div>
     </div>

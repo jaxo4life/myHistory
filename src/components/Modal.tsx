@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
+import { useI18n } from '../i18n';
 
 /** 通用模态窗：点击遮罩关闭，遮罩淡入 + 内容缩放入场。 */
 export function Modal({
@@ -10,6 +11,7 @@ export function Modal({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const { t } = useI18n();
   return (
     <div
       className="animate-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
@@ -24,7 +26,7 @@ export function Modal({
           <button
             onClick={onClose}
             className="rounded p-1 text-muted transition-colors hover:bg-card hover:text-fg"
-            aria-label="关闭"
+            aria-label={t('common.close')}
           >
             <svg
               width="16"

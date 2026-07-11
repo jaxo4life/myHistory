@@ -13,6 +13,7 @@ export interface Settings {
   blacklist: string[];
   categories: CategoryDef[];
   categoryVersion?: number;
+  locale?: 'zh' | 'en';
 }
 
 const KEY = 'history-plus:settings';

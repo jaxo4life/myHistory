@@ -6,6 +6,7 @@ import {
   COLOR_LIBRARY,
   type CategoryDef,
 } from '../lib/categories';
+import { useI18n } from '../i18n';
 
 interface FormState {
   name: string;
@@ -16,8 +17,10 @@ interface FormState {
 
 const EMPTY: FormState = { name: '', icon: '📌', color: '#6C5CE7', patterns: '' };
 
-/** 分类管理：上方卡片网格（始终显示，当前编辑高亮）+ 下方隔离的编辑区。 */
+/** 分类管理：上方卡片网格（始终显示，当前编辑高亮）+ 下方隔离的编辑区。
+ * 注意：此处是「编辑面」，分类名显示原始逻辑键、不翻译（翻译只发生在读展示面）。 */
 export function CategoryManager() {
+  const { t } = useI18n();
   const [categories, setCategories] = useState<CategoryDef[] | null>(null);
   // null=浏览态；'__new__'=新增；其他=编辑该名称
   const [editing, setEditing] = useState<string | null>(null);
@@ -27,7 +30,7 @@ export function CategoryManager() {
     getCategories().then(setCategories);
   }, []);
 
-  if (!categories) return <div className="text-sm text-muted">加载中…</div>;
+  if (!categories) return <div className="text-sm text-muted">{t('common.loading')}</div>;
 
   function beginEdit(cat?: CategoryDef) {
     if (cat) {
@@ -52,7 +55,7 @@ export function CategoryManager() {
   async function saveForm() {
     const name = form.name.trim();
     if (!name) {
-      alert('请填写分类名');
+      alert(t('catMgr.nameRequired'));
       return;
     }
     const patterns = form.patterns
@@ -64,7 +67,7 @@ export function CategoryManager() {
     let next: CategoryDef[];
     if (editing === '__new__') {
       if (categories.some((c) => c.name === name)) {
-        alert('该分类名已存在');
+        alert(t('catMgr.nameExists'));
         return;
       }
       next = [...categories, nextCat];
@@ -76,13 +79,13 @@ export function CategoryManager() {
   }
 
   async function remove(name: string) {
-    if (!confirm(`删除分类「${name}」？`)) return;
+    if (!confirm(t('catMgr.deleteConfirm', { name }))) return;
     await persist(categories.filter((c) => c.name !== name));
     setEditing(null);
   }
 
   async function reset() {
-    if (!confirm('恢复内置默认分类？所有自定义将丢失。')) return;
+    if (!confirm(t('catMgr.resetConfirm'))) return;
     await persist(DEFAULT_CATEGORIES);
     setEditing(null);
   }
@@ -91,10 +94,11 @@ export function CategoryManager() {
     <div className="rounded-2xl bg-card p-5">
       <div className="mb-3 flex items-center justify-between">
         <div className="text-sm font-semibold text-fg">
-          分类管理 <span className="text-xs font-normal text-muted">（点击卡片编辑）</span>
+          {t('catMgr.title')}{' '}
+          <span className="text-xs font-normal text-muted">{t('catMgr.subtitle')}</span>
         </div>
         <button onClick={reset} className="text-xs text-muted hover:text-fg">
-          恢复默认
+          {t('catMgr.reset')}
         </button>
       </div>
 
@@ -114,7 +118,7 @@ export function CategoryManager() {
                 backgroundColor: `${color}${isActive ? '33' : '14'}`,
                 boxShadow: isActive ? `0 0 0 2px ${color}` : undefined,
               }}
-              title={`${cat.name} · ${cat.patterns.length} 条规则`}
+              title={t('catMgr.cardTitle', { name: cat.name, n: cat.patterns.length })}
             >
               <span className="text-lg leading-none">{cat.icon ?? '📌'}</span>
               <span
@@ -129,7 +133,7 @@ export function CategoryManager() {
                   remove(cat.name);
                 }}
                 className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-bg text-xs text-muted ring-1 ring-border hover:text-fg group-hover:flex"
-                title="删除分类"
+                title={t('catMgr.deleteTitle')}
               >
                 ×
               </button>
@@ -157,7 +161,7 @@ export function CategoryManager() {
           onClick={() => beginEdit()}
           className="mt-3 rounded-lg bg-accent px-4 py-1.5 text-sm text-white hover:opacity-90"
         >
-          + 添加分类
+          {t('catMgr.add')}
         </button>
       )}
     </div>
@@ -179,23 +183,24 @@ function EditForm({
   onDelete?: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div>
       <div className="mb-2 text-xs font-medium text-muted">
-        {isNew ? '新增分类' : '编辑分类'}
+        {isNew ? t('catMgr.addTitle') : t('catMgr.editTitle')}
       </div>
 
       <div className="flex gap-2">
         <input
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
-          placeholder="分类名（如：设计）"
+          placeholder={t('catMgr.namePlaceholder')}
           className="min-w-0 flex-1 rounded bg-card px-2 py-1 text-sm text-fg outline-none ring-1 ring-border focus:ring-accent"
           autoFocus
         />
       </div>
 
-      <div className="mt-2 text-xs text-muted">图标</div>
+      <div className="mt-2 text-xs text-muted">{t('catMgr.icon')}</div>
       <div className="no-scrollbar mt-1 flex max-h-20 flex-wrap gap-1 overflow-y-auto">
         {ICON_LIBRARY.map((ic) => (
           <button
@@ -210,7 +215,7 @@ function EditForm({
         ))}
       </div>
 
-      <div className="mt-2 text-xs text-muted">颜色</div>
+      <div className="mt-2 text-xs text-muted">{t('catMgr.color')}</div>
       <div className="mt-1 flex flex-wrap gap-1.5">
         {COLOR_LIBRARY.map((c) => (
           <button
@@ -229,7 +234,7 @@ function EditForm({
         <input
           value={form.patterns}
           onChange={(e) => setForm({ ...form, patterns: e.target.value })}
-          placeholder="域名，逗号分隔（如 figma.com, dribbble.com）"
+          placeholder={t('catMgr.domainPlaceholder')}
           className="w-full rounded bg-card px-2 py-1 text-sm text-fg outline-none ring-1 ring-border focus:ring-accent"
         />
       </div>
@@ -239,17 +244,17 @@ function EditForm({
           onClick={onSave}
           className="rounded bg-accent px-3 py-1 text-sm text-white hover:opacity-90"
         >
-          {isNew ? '添加' : '保存'}
+          {isNew ? t('common.add') : t('common.save')}
         </button>
         <button onClick={onCancel} className="rounded bg-card px-3 py-1 text-sm text-fg">
-          取消
+          {t('common.cancel')}
         </button>
         {!isNew && onDelete && (
           <button
             onClick={onDelete}
             className="ml-auto rounded px-3 py-1 text-sm text-muted hover:text-fg"
           >
-            删除分类
+            {t('catMgr.deleteTitle')}
           </button>
         )}
       </div>

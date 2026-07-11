@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildMonthGrid, formatDayKey } from '../src/lib/calendar';
+import { buildMonthGrid, formatDayKey, weekdayLabels } from '../src/lib/calendar';
 
 const TODAY = new Date(2026, 2, 15, 12).getTime(); // 2026-03-15
 
@@ -39,5 +39,23 @@ describe('buildMonthGrid', () => {
     for (const cell of grid) {
       expect(cell.dayKey).toBe(formatDayKey(cell.date));
     }
+  });
+});
+
+describe('weekdayLabels', () => {
+  it('中文 周一开头：一二三四五六日', () => {
+    expect(weekdayLabels(1, 'zh')).toEqual(['一', '二', '三', '四', '五', '六', '日']);
+  });
+
+  it('中文 周日开头：日一二三四五六', () => {
+    expect(weekdayLabels(0, 'zh')).toEqual(['日', '一', '二', '三', '四', '五', '六']);
+  });
+
+  it('英文 周一开头：MTWTFSS', () => {
+    expect(weekdayLabels(1, 'en')).toEqual(['M', 'T', 'W', 'T', 'F', 'S', 'S']);
+  });
+
+  it('英文 周日开头：SMTWTFS', () => {
+    expect(weekdayLabels(0, 'en')).toEqual(['S', 'M', 'T', 'W', 'T', 'F', 'S']);
   });
 });

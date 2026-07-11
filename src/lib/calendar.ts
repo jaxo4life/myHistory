@@ -1,3 +1,5 @@
+import type { Locale } from '../i18n/translations';
+
 export interface CalendarDay {
   date: Date;
   dayKey: string; // 'YYYY-MM-DD'
@@ -49,8 +51,11 @@ export function buildMonthGrid(
   return days;
 }
 
-/** 周表头标签。 */
-export function weekdayLabels(weekStart: 0 | 1): string[] {
-  const sun = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  return weekStart === 0 ? sun : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+/** 周表头标签。locale 决定中文「一二三…」/ 英文单字母；weekStart 旋转起始日。 */
+export function weekdayLabels(weekStart: 0 | 1, locale: Locale = 'zh'): string[] {
+  const base =
+    locale === 'zh'
+      ? ['日', '一', '二', '三', '四', '五', '六'] // 索引 = getDay
+      : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  return [...base.slice(weekStart), ...base.slice(0, weekStart)];
 }

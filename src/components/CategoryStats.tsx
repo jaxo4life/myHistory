@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getCategoryCounts } from '../db/queries';
+import { useI18n, catLabel } from '../i18n';
 
 /** 右栏：分类行式列表（左色条占比 + 计数），点击联动中栏过滤。 */
 export function CategoryStats({
@@ -9,10 +10,11 @@ export function CategoryStats({
   onPick: (category: string) => void;
   version: number;
 }) {
+  const { t, locale } = useI18n();
   const cats = useLiveQuery(() => getCategoryCounts(), [version]);
 
-  if (!cats) return <div className="text-sm text-muted">加载中…</div>;
-  if (cats.length === 0) return <div className="text-sm text-muted">暂无数据</div>;
+  if (!cats) return <div className="text-sm text-muted">{t('common.loading')}</div>;
+  if (cats.length === 0) return <div className="text-sm text-muted">{t('common.noData')}</div>;
 
   const max = cats[0].count;
 
@@ -25,7 +27,7 @@ export function CategoryStats({
             key={category}
             onClick={() => onPick(category)}
             className="relative block w-full overflow-hidden rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-card"
-            title={`按「${category}」过滤`}
+            title={t('catStats.filterTitle', { name: catLabel(category, locale) })}
           >
             <span
               className="absolute inset-y-0 left-0 opacity-[0.12]"
@@ -35,7 +37,9 @@ export function CategoryStats({
               <span className="shrink-0" style={{ color }}>
                 {icon}
               </span>
-              <span className="min-w-0 flex-1 truncate text-fg">{category}</span>
+              <span className="min-w-0 flex-1 truncate text-fg">
+                {catLabel(category, locale)}
+              </span>
               <span className="shrink-0 font-semibold tabular-nums" style={{ color }}>
                 {count}
               </span>

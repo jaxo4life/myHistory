@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Calendar } from '../../components/Calendar';
 import { HistoryList } from '../../components/HistoryList';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { LocaleToggle } from '../../components/LocaleToggle';
 import { DomainStats } from '../../components/DomainStats';
 import { CategoryStats } from '../../components/CategoryStats';
 import { TagStats } from '../../components/TagStats';
@@ -12,10 +13,12 @@ import { getByDayKey, searchVisits, deleteVisits } from '../../db/queries';
 import { getDayKey } from '../../lib/url-utils';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getSettings, type Settings } from '../../store/settings';
+import { useI18n, catLabel } from '../../i18n';
 
 type View = 'history' | 'analytics' | 'manage';
 
 export function App() {
+  const { t, locale } = useI18n();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [view, setView] = useState<View>('history');
   const [selectedDayKey, setSelectedDayKey] = useState<string>(getDayKey(Date.now()));
@@ -70,12 +73,12 @@ export function App() {
     setSelectedIds(new Set(ids));
   }
 
-  if (!settings) return <div className="p-4 text-muted">加载中…</div>;
+  if (!settings) return <div className="p-4 text-muted">{t('common.loading')}</div>;
 
   const tabs: { v: View; label: string }[] = [
-    { v: 'history', label: '历史' },
-    { v: 'analytics', label: '分析' },
-    { v: 'manage', label: '管理' },
+    { v: 'history', label: t('tab.history') },
+    { v: 'analytics', label: t('tab.analytics') },
+    { v: 'manage', label: t('tab.manage') },
   ];
 
   return (
@@ -104,7 +107,8 @@ export function App() {
             })}
           </div>
         </nav>
-        <div className="justify-self-end">
+        <div className="flex items-center gap-1 justify-self-end">
+          <LocaleToggle />
           <ThemeToggle />
         </div>
       </header>
@@ -118,12 +122,14 @@ export function App() {
           {/* 左栏：日历 */}
           <aside className="w-72 shrink-0 p-5">
             <Calendar
-              weekStart={settings.weekStart}
+              weekStart={locale === 'zh' ? 1 : 0}
               selectedDayKey={selectedDayKey}
               onSelect={setSelectedDayKey}
             />
             <div className="mt-6">
-              <div className="mb-2 text-xs font-medium tracking-wide text-muted">当日概览</div>
+              <div className="mb-2 text-xs font-medium tracking-wide text-muted">
+                {t('sidebar.daySummary')}
+              </div>
               <DaySummary dayKey={selectedDayKey} />
             </div>
           </aside>
@@ -145,26 +151,28 @@ export function App() {
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="搜索标题 / URL / 域名…"
+                  placeholder={t('search.placeholder')}
                   className="w-full rounded-lg bg-card py-2 pl-9 pr-3 text-sm text-fg outline-none ring-1 ring-border transition-shadow focus:ring-accent"
                 />
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 {selectionMode ? (
                   <>
-                    <span className="text-xs text-muted">已选 {selectedIds.size} 条</span>
+                    <span className="text-xs text-muted">
+                      {t('search.selected', { n: selectedIds.size })}
+                    </span>
                     <button
                       onClick={selectAll}
                       className="rounded-lg bg-card px-2.5 py-1 text-xs text-fg transition-colors hover:bg-border"
                     >
-                      全选
+                      {t('search.selectAll')}
                     </button>
                     <button
                       onClick={deleteSelected}
                       disabled={selectedIds.size === 0}
                       className="rounded-lg bg-accent px-2.5 py-1 text-xs text-white transition-opacity hover:opacity-90 disabled:opacity-40"
                     >
-                      删除选中
+                      {t('search.deleteSelected')}
                     </button>
                     <button
                       onClick={() => {
@@ -173,7 +181,7 @@ export function App() {
                       }}
                       className="ml-auto rounded-lg bg-card px-2.5 py-1 text-xs text-fg transition-colors hover:bg-border"
                     >
-                      取消
+                      {t('common.cancel')}
                     </button>
                   </>
                 ) : (
@@ -181,7 +189,7 @@ export function App() {
                     <input
                       value={domainFilter}
                       onChange={(e) => setDomainFilter(e.target.value)}
-                      placeholder="域名"
+                      placeholder={t('search.domainPlaceholder')}
                       className="w-28 rounded-lg bg-card px-2.5 py-1 text-xs text-fg outline-none ring-1 ring-border transition-shadow focus:ring-accent"
                     />
                     {categoryFilter && (
@@ -189,7 +197,7 @@ export function App() {
                         onClick={() => setCategoryFilter('')}
                         className="rounded-lg bg-accent/15 px-2 py-1 text-xs text-accent transition-colors hover:bg-accent/25"
                       >
-                        类别: {categoryFilter} ✕
+                        {t('search.categoryFilter', { name: catLabel(categoryFilter, locale) })}
                       </button>
                     )}
                     {tagFilter && (
@@ -202,14 +210,14 @@ export function App() {
                     )}
                     {hasFilter && (
                       <span className="text-xs text-muted">
-                        {listVisits?.length ?? 0} 条结果
+                        {t('search.resultCount', { n: listVisits?.length ?? 0 })}
                       </span>
                     )}
                     <button
                       onClick={() => setSelectionMode(true)}
                       className="ml-auto rounded-lg bg-card px-2.5 py-1 text-xs text-fg transition-colors hover:bg-border"
                     >
-                      选择
+                      {t('search.selectMode')}
                     </button>
                   </>
                 )}
@@ -225,11 +233,13 @@ export function App() {
           </main>
           {/* 右栏：分类 + 标签 + 最常访问 */}
           <aside className="no-scrollbar flex w-[300px] shrink-0 flex-col overflow-y-auto p-5">
-            <div className="mb-1 text-sm font-semibold text-fg">分类</div>
+            <div className="mb-1 text-sm font-semibold text-fg">{t('sidebar.categories')}</div>
             <CategoryStats onPick={setCategoryFilter} version={settingsVersion} />
-            <div className="mb-1 mt-4 text-sm font-semibold text-fg">标签</div>
+            <div className="mb-1 mt-4 text-sm font-semibold text-fg">{t('sidebar.tags')}</div>
             <TagStats onPick={setTagFilter} version={settingsVersion} />
-            <div className="mb-1 mt-4 text-sm font-semibold text-fg">最常访问</div>
+            <div className="mb-1 mt-4 text-sm font-semibold text-fg">
+              {t('sidebar.topDomains')}
+            </div>
             <div className="flex-1">
               <DomainStats onPick={setDomainFilter} limit={10} />
             </div>
