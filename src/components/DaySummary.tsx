@@ -2,7 +2,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { getByDayKey } from '../db/queries';
 import { useI18n } from '../i18n';
 
-/** 左栏日历下方的「当日概览」：当天访问数 + 最常去域名。 */
 export function DaySummary({ dayKey }: { dayKey: string }) {
   const { t } = useI18n();
   const visits = useLiveQuery(() => getByDayKey(dayKey), [dayKey]);

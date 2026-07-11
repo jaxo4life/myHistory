@@ -1,6 +1,5 @@
 import { useI18n, type Locale } from '../i18n';
 
-/** 中/EN 分段切换，与 ThemeToggle 并列于 header。切换即时全站生效并持久化。 */
 export function LocaleToggle() {
   const { locale, setLocale } = useI18n();
   const items: { key: Locale; label: string }[] = [

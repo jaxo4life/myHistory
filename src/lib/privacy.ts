@@ -11,7 +11,6 @@ const INTERNAL_PREFIXES = [
   'devtools://',
 ];
 
-/** 是否为浏览器内部页 / 本地文件 / 扩展页 —— 一律不记录。 */
 export function isInternalUrl(url: string): boolean {
   return INTERNAL_PREFIXES.some((p) => url.startsWith(p));
 }
@@ -22,10 +21,6 @@ export interface RecordableVisit {
   incognito: boolean;
 }
 
-/**
- * 判断一次访问是否应被记录。默认锁死的隐私边界：
- * 隐身模式、内部/本地页、空域名、用户黑名单域名 → 不记录。
- */
 export function shouldRecord(visit: RecordableVisit, blacklist: string[]): boolean {
   if (visit.incognito) return false;
   if (isInternalUrl(visit.url)) return false;

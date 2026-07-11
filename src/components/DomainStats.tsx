@@ -2,7 +2,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { getTopDomains } from '../db/queries';
 import { useI18n } from '../i18n';
 
-/** 最常访问域名列表。历史页传 limit=10，分析页传更大值。 */
 export function DomainStats({
   onPick,
   limit = 30,

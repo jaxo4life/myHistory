@@ -29,7 +29,6 @@ export function App() {
   const [tagFilter, setTagFilter] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  // 分类规则存在 chrome.storage，liveQuery 默认只监听 db；用 version 在 storage 变化时驱动重算
   const settingsVersion = useSettingsVersion();
 
   useEffect(() => {
@@ -115,7 +114,6 @@ export function App() {
         <ManageView />
       ) : (
         <div className="flex flex-1 overflow-hidden">
-          {/* 左栏：日历 */}
           <aside className="w-72 shrink-0 p-5">
             <Calendar
               weekStart={locale === 'zh' ? 1 : 0}
@@ -129,7 +127,6 @@ export function App() {
               <DaySummary dayKey={selectedDayKey} />
             </div>
           </aside>
-          {/* 中栏：搜索 + 历史 */}
           <main className="no-scrollbar flex-1 overflow-y-auto px-6 py-5">
             <div className="mb-4">
               <div className="relative">
@@ -227,7 +224,6 @@ export function App() {
               onTagClick={setTagFilter}
             />
           </main>
-          {/* 右栏：分类 + 标签 + 最常访问 */}
           <aside className="no-scrollbar flex w-[300px] shrink-0 flex-col overflow-y-auto p-5">
             <div className="mb-1 text-sm font-semibold text-fg">{t('sidebar.categories')}</div>
             <CategoryStats onPick={setCategoryFilter} version={settingsVersion} />

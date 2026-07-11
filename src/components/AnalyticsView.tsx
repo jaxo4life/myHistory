@@ -29,7 +29,6 @@ const MUTED = '#8E8E8E';
 const TREND = '#3B82F6';
 const HOUR_BASE = 'rgba(108,92,231,0.35)';
 const HOUR_PEAK = '#F97316';
-// 周行序由 locale 决定（中文周一 / 英文周日）
 const WEEKDAY_ORDER: Record<Locale, number[]> = {
   zh: [1, 2, 3, 4, 5, 6, 0],
   en: [0, 1, 2, 3, 4, 5, 6],
@@ -102,7 +101,6 @@ export function AnalyticsView() {
     return peak;
   }, [matrix]);
 
-  // 今日 vs 昨日环比（昨天落在所有可选范围内）
   const todayCount = overview?.today ?? 0;
   const yesterdayCount = daily?.find((d) => d.dayKey === yesterdayKey())?.count ?? 0;
   const diff = todayCount - yesterdayCount;
@@ -129,7 +127,6 @@ export function AnalyticsView() {
   return (
     <div className="no-scrollbar h-full overflow-y-auto p-6">
       <div className="mx-auto max-w-[1200px]">
-        {/* Hero：今日焦点 */}
         <div className="mb-6 rounded-2xl bg-card p-6">
           <div className="flex items-end justify-between gap-6">
             <div className="min-w-0">
@@ -172,7 +169,6 @@ export function AnalyticsView() {
           </div>
         </div>
 
-        {/* 次要 KPI */}
         <div className="mb-6 grid grid-cols-4 gap-4">
           {stats.map((s) => (
             <div key={s.label} className="rounded-2xl bg-card p-4">
@@ -184,7 +180,6 @@ export function AnalyticsView() {
           ))}
         </div>
 
-        {/* 主图：访问趋势（放大 + 时间段切换） */}
         <div className="mb-6 rounded-2xl bg-card p-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-semibold text-fg">{t('analytics.trend')}</div>
@@ -245,7 +240,6 @@ export function AnalyticsView() {
           </div>
         </div>
 
-        {/* 一周×时段热力图 */}
         <div className="mb-6 rounded-2xl bg-card p-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-semibold text-fg">{t('analytics.heatmap')}</div>
@@ -306,7 +300,6 @@ export function AnalyticsView() {
           </div>
         </div>
 
-        {/* 活跃时段 + 访问来源 */}
         <div className="mb-6 grid grid-cols-2 gap-4">
           <div className="rounded-2xl bg-card p-5">
             <div className="mb-3 flex items-center justify-between">
@@ -371,7 +364,6 @@ export function AnalyticsView() {
           </div>
         </div>
 
-        {/* Top 域名 + 分类分布 */}
         <div className="grid grid-cols-2 gap-4">
           <div className="relative rounded-2xl bg-card">
             <div className="absolute inset-0 flex flex-col p-5">

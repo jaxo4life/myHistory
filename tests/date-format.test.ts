@@ -7,7 +7,6 @@ import {
   weekdayName,
 } from '../src/lib/date-format';
 
-// 2026-01-01 是周四（getDay=4）
 const MS = new Date(2026, 0, 1).getTime();
 
 describe('formatMonthTitle', () => {

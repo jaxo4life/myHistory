@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildMonthGrid, weekdayLabels } from '../src/lib/calendar';
 import { getDayKey } from '../src/lib/url-utils';
 
-const TODAY = new Date(2026, 2, 15, 12).getTime(); // 2026-03-15
+const TODAY = new Date(2026, 2, 15, 12).getTime();
 
 describe('buildMonthGrid', () => {
   it('生成 42 格（6×7）', () => {

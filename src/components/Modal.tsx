@@ -1,7 +1,6 @@
 import { type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 
-/** 通用模态窗：点击遮罩关闭，遮罩淡入 + 内容缩放入场。 */
 export function Modal({
   title,
   onClose,

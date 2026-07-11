@@ -2,7 +2,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { getCategoryCounts } from '../db/queries';
 import { useI18n, catLabel } from '../i18n';
 
-/** 右栏：分类行式列表（左色条占比 + 计数），点击联动中栏过滤。 */
 export function CategoryStats({
   onPick,
   version,

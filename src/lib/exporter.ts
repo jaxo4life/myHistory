@@ -10,7 +10,6 @@ function csvEscape(value: unknown): string {
   return s;
 }
 
-/** 把访问记录序列化为 CSV 字符串。 */
 export function visitsToCSV(visits: Visit[]): string {
   const lines = [CSV_HEADERS.join(',')];
   for (const v of visits) {
@@ -23,12 +22,10 @@ export function visitsToCSV(visits: Visit[]): string {
   return lines.join('\n');
 }
 
-/** 把访问记录序列化为 JSON 字符串。 */
 export function visitsToJSON(visits: Visit[]): string {
   return JSON.stringify(visits, null, 2);
 }
 
-/** 触发浏览器下载一个文本文件。 */
 export function downloadText(filename: string, content: string, mime = 'text/plain'): void {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);

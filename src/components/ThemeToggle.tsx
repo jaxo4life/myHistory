@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { getSettings, saveSettings, type Settings } from '../store/settings';
 import { useI18n } from '../i18n';
 
-/** 在 <html> 上切换 .dark 类，并持久化到 chrome.storage。纯图标按钮。 */
 export function ThemeToggle() {
   const { t } = useI18n();
   const [theme, setTheme] = useState<Settings['theme']>('dark');

@@ -2,7 +2,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { getAllTags } from '../db/queries';
 import { useI18n } from '../i18n';
 
-/** 右栏：标签云，点击某标签回调（联动中栏过滤）。 */
 export function TagStats({
   onPick,
   version,

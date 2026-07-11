@@ -3,13 +3,12 @@ export interface Visit {
   url: string;
   domain: string;
   title: string;
-  visitTime: number; // 毫秒时间戳
-  dayKey: string; // 'YYYY-MM-DD'，本地时区
-  transitionType: string; // link/typed/redirect/reload...
+  visitTime: number;
+  dayKey: string;
+  transitionType: string;
   referrerUrl?: string;
   faviconUrl?: string;
   tags?: string[];
 }
 
-/** 写入时不含自增 id */
 export type NewVisit = Omit<Visit, 'id'>;

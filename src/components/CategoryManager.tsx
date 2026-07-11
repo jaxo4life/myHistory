@@ -14,17 +14,14 @@ interface FormState {
   name: string;
   icon: string;
   color: string;
-  patterns: string; // 文本，逗号/空格分隔
+  patterns: string;
 }
 
 const EMPTY: FormState = { name: '', icon: DEFAULT_CATEGORY_ICON, color: DEFAULT_CATEGORY_COLOR, patterns: '' };
 
-/** 分类管理：上方卡片网格（始终显示，当前编辑高亮）+ 下方隔离的编辑区。
- * 注意：此处是「编辑面」，分类名显示原始逻辑键、不翻译（翻译只发生在读展示面）。 */
 export function CategoryManager() {
   const { t } = useI18n();
   const [categories, setCategories] = useState<CategoryDef[] | null>(null);
-  // null=浏览态；'__new__'=新增；其他=编辑该名称
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
 
@@ -104,7 +101,6 @@ export function CategoryManager() {
         </button>
       </div>
 
-      {/* 卡片网格：始终显示，当前编辑的高亮 */}
       <div className="grid grid-cols-6 gap-1.5">
         {categories.map((cat) => {
           const isActive = editing === cat.name;
@@ -144,7 +140,6 @@ export function CategoryManager() {
         })}
       </div>
 
-      {/* 编辑区：下方独立隔离 */}
       {editing && (
         <div className="mt-3 rounded-xl bg-bg p-3 ring-1 ring-border">
           <EditForm

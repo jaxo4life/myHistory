@@ -2,10 +2,6 @@ export type Locale = 'zh' | 'en';
 
 export const LOCALES: Locale[] = ['zh', 'en'];
 
-/**
- * 翻译字典（flat 点分键）。缺键时 t() 回退 zh 再回退 key 本身，不崩。
- * 分类名不走这里（见 categories.ts 的 catLabel）；分类名逻辑键保持中文。
- */
 export const translations: Record<Locale, Record<string, string>> = {
   zh: {
     'common.loading': '加载中…',

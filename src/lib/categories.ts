@@ -1,26 +1,13 @@
 export interface CategoryDef {
   name: string;
   icon?: string;
-  color?: string; // hex，用于卡片/图表
+  color?: string;
   patterns: string[];
 }
 
-/** 自定义分类未填 icon/color 时的默认值。 */
 export const DEFAULT_CATEGORY_ICON = '📌';
 export const DEFAULT_CATEGORY_COLOR = '#6C5CE7';
 
-/**
- * 内置默认分类规则（用户可在「管理」页自定义覆盖）。
- * 覆盖全球 + 中国主流站点，分类体系参考 hao123/2345/360 等导航站。
- *
- * pattern 形式：
- *  - 以 '.' 结尾：前缀匹配（'news.' 匹配 news.xxx）
- *  - 否则：精确域名或子域名后缀匹配（'qq.com' 匹配 qq.com 与 *.qq.com）
- *
- * 归类两步：① 精确 pattern 匹配，最长 pattern 优先（更具体的规则胜出，
- *   让门户子站落到精确类别：mail.qq.com→邮件、v.qq.com→视频）；
- *   ② 未命中则用 HEURISTIC_RULES 关键词兜底（覆盖长尾域名）。
- */
 export const DEFAULT_CATEGORIES: CategoryDef[] = [
   {
     name: '社交',
@@ -71,16 +58,11 @@ export const DEFAULT_CATEGORIES: CategoryDef[] = [
     icon: '🏠',
     color: '#EF4444',
     patterns: [
-      // 招聘
       'zhaopin.com', '51job.com', 'lagou.com', 'zhipin.com', 'liepin.com',
       'indeed.com', 'glassdoor.com',
-      // 房产
       'fang.com', 'lianjia.com', 'anjuke.com', 'ke.com', 'zillow.com',
-      // 汽车
       'autohome.com.cn', 'dongchedi.com', 'pcauto.com.cn', 'cars.com',
-      // 健康
       'dxy.cn', 'guahao.com', 'webmd.com', 'mayoclinic.org', 'healthline.com',
-      // 本地生活
       'dianping.com', 'meituan.com', 'ele.me', '58.com', 'yelp.com',
     ],
   },
@@ -181,12 +163,9 @@ export const DEFAULT_CATEGORIES: CategoryDef[] = [
     icon: '📖',
     color: '#F59E0B',
     patterns: [
-      // 百科
       'wikipedia.org', 'britannica.com', 'baike.baidu.com',
-      // 词典
       'dictionary.com', 'merriam-webster.com', 'collinsdictionary.com', 'dict.cn',
       'iciba.com', 'youdao.com', 'zdic.net',
-      // 翻译
       'translate.google.com', 'deepl.com', 'fanyi.baidu.com', 'fanyi.qq.com',
       'fanyi.sohu.com',
     ],
@@ -231,30 +210,19 @@ export const DEFAULT_CATEGORIES: CategoryDef[] = [
     icon: '🔧',
     color: '#64748B',
     patterns: [
-      // 网络 / IP / DNS / 测速
       'browserleaks.com', 'browserling.com', 'whatismyipaddress.com', 'ipinfo.io',
       'ip.sb', 'speedtest.net', 'fast.com', 'dns.google', 'dnschecker.org',
       'mxtoolbox.com', 'whois.com', 'who.is',
-      // 站长 / SEO
       'chinaz.com', 'aizhan.com', 'semrush.com', 'ahrefs.com', 'similarweb.com',
       '17ce.com',
-      // 文件 / 转换
       'smallpdf.com', 'ilovepdf.com', 'convertio.co', 'removebg.com', 'tinypng.com',
-      // 其他实用
       'timeanddate.com', 'validator.w3.org', 'tool.lu', 'bejson.com',
     ],
   },
 ];
 
-/**
- * 分类规则版本号。DEFAULT_CATEGORIES 变更时 bump，触发已安装用户迁移。
- */
 export const CATEGORY_RULES_VERSION = 5;
 
-/**
- * 兜底启发式：精确 pattern 未命中时，按域名包含的关键词归类。
- * 只放高置信度关键词，避免大面积误判；命中后仍可被用户手动覆盖。
- */
 const HEURISTIC_RULES: { kw: string; cat: string }[] = [
   { kw: 'shop', cat: '购物' }, { kw: 'store', cat: '购物' }, { kw: 'buy', cat: '购物' },
   { kw: 'mall', cat: '购物' }, { kw: 'cart', cat: '购物' },
@@ -274,14 +242,12 @@ const HEURISTIC_RULES: { kw: string; cat: string }[] = [
   { kw: 'search', cat: '搜索' },
 ];
 
-/** 预设图标库（自定义分类选择用）。 */
 export const ICON_LIBRARY = [
   '💬', '🎬', '🛒', '📰', '✉️', '🔍', '💼', '💻', '📚', '💰', '🎮',
   '🎵', '🖼️', '📷', '✈️', '🏠', '🍔', '⚽', '🧪', '📊', '🔧', '🎯',
   '💡', '📺', '💊', '🚗', '📱', '🌐', '🗓️', '📎', '⭐', '❤️', '🔥', '📌',
 ];
 
-/** 预设颜色库（自定义分类选择用）。 */
 export const COLOR_LIBRARY = [
   '#6C5CE7', '#3B82F6', '#14B8A6', '#22C55E', '#F97316', '#EC4899',
   '#F43F5E', '#EAB308', '#6366F1', '#A855F7', '#10B981', '#8B5CF6',
@@ -293,12 +259,8 @@ function matches(domain: string, pattern: string): boolean {
   return domain === pattern || domain.endsWith('.' + pattern);
 }
 
-/**
- * 把域名归类：① 精确 pattern（最长优先）② 关键词兜底 ③ 其他。
- */
 export function classifyDomain(domain: string, rules: CategoryDef[]): string {
   const d = domain.toLowerCase();
-  // ① 精确匹配，最长 pattern 胜出
   let best = '其他';
   let bestLen = 0;
   for (const cat of rules) {
@@ -310,7 +272,6 @@ export function classifyDomain(domain: string, rules: CategoryDef[]): string {
     }
   }
   if (bestLen > 0) return best;
-  // ② 关键词兜底
   const known = new Set(rules.map((r) => r.name));
   for (const { kw, cat } of HEURISTIC_RULES) {
     if (d.includes(kw) && known.has(cat)) return cat;

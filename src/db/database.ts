@@ -9,7 +9,6 @@ export class HistoryDB extends Dexie {
     this.version(1).stores({
       visits: '++id, domain, dayKey, visitTime',
     });
-    // v2: 增加 *tags 多值索引，支持按标签查询
     this.version(2).stores({
       visits: '++id, domain, dayKey, visitTime, *tags',
     });

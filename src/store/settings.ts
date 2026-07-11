@@ -25,16 +25,9 @@ export const DEFAULT_SETTINGS: Settings = {
   categoryVersion: CATEGORY_RULES_VERSION,
 };
 
-/**
- * 读设置。对旧版存储（无 icon/color）做迁移补全：
- * 按内置同名分类补回 icon/color，避免「全图钉」。统一在此处迁移，
- * 所有读取（CategoryManager、getCategories、采集过滤等）都拿到完整数据。
- */
 export async function getSettings(): Promise<Settings> {
   const { [KEY]: stored } = await chrome.storage.local.get(KEY);
   const merged: Settings = { ...DEFAULT_SETTINGS, ...(stored ?? {}) };
-  // 分类规则版本迁移：DEFAULT_CATEGORIES.patterns 变更后，把内置分类的 patterns
-  // 更新到最新（用户自定义分类保留），并写回 storage 避免每次读取重复迁移。
   const storedVersion = (stored as Partial<Settings> | undefined)?.categoryVersion ?? 0;
   const migratePatterns = storedVersion < CATEGORY_RULES_VERSION;
   const current = merged.categories ?? DEFAULT_CATEGORIES;
@@ -48,7 +41,6 @@ export async function getSettings(): Promise<Settings> {
       color: c.color ?? def?.color ?? DEFAULT_CATEGORY_COLOR,
     };
   });
-  // 追加版本升级新增的内置类（如本次新加的 AI）；用户自定义分类已在 updated 中保留
   const added = migratePatterns
     ? DEFAULT_CATEGORIES.filter((d) => !existing.has(d.name))
     : [];

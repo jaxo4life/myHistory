@@ -7,7 +7,6 @@ import { useI18n, type Locale } from '../i18n';
 
 const PAGE_SIZE = 100;
 
-/** 分组标题：今天 / 昨天 / 日期（含周几），按 locale 格式化。 */
 function dayLabel(
   dayKey: string,
   todayKey: string,
@@ -26,7 +25,6 @@ interface Group {
   items: Visit[];
 }
 
-/** 按天分组，保持 visits 原有时间倒序。 */
 function groupByDay(
   visits: Visit[],
   todayKey: string,

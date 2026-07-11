@@ -12,14 +12,12 @@ import { translations, type Locale } from './translations';
 
 interface I18nCtx {
   locale: Locale;
-  /** 翻译 + {name} 插值；缺键回退 zh 再回退 key 本身。 */
-  t: (key: string, params?: Record<string, string | number>) => string;
+    t: (key: string, params?: Record<string, string | number>) => string;
   setLocale: (next: Locale) => Promise<void>;
 }
 
 const I18nContext = createContext<I18nCtx>(null!);
 
-/** 首次运行（无 stored locale）按浏览器语言猜测。 */
 function detectLocale(): Locale {
   const l = (typeof navigator !== 'undefined' ? navigator.language : 'zh').toLowerCase();
   return l.startsWith('zh') ? 'zh' : 'en';
@@ -53,5 +51,4 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useI18n = () => useContext(I18nContext);

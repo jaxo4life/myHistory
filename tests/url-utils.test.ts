@@ -12,7 +12,6 @@ describe('getDomain', () => {
 
   it('chrome 内部页返回 hostname', () => {
     expect(getDomain('chrome://settings/')).toBe('settings');
-    // 内部页 URL hostname 解析不稳定，我们只要求不抛异常、返回非空或空串之一即可
   });
 });
 

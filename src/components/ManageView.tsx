@@ -28,7 +28,6 @@ export function ManageView() {
   return (
     <div className="no-scrollbar h-full overflow-y-auto p-6">
       <div className="mx-auto max-w-[1200px]">
-        {/* 数据管理 */}
         <div className="mb-6 rounded-2xl bg-card p-5">
           <div className="mb-3 text-sm font-semibold text-fg">{t('manage.data')}</div>
           <div className="mb-4 text-xs text-muted">
@@ -64,7 +63,6 @@ export function ManageView() {
           </div>
         </div>
 
-        {/* 分类管理 */}
         <CategoryManager />
 
         {clearOpen && (
@@ -89,7 +87,6 @@ function ClearConfirmModal({
   onConfirm: () => void;
 }) {
   const { t } = useI18n();
-  // 提示词与按钮匹配共用同一个 confirmWord，天然随 locale 同步
   const confirmWord = t('manage.clear.confirmWord');
   const [text, setText] = useState('');
   return (
