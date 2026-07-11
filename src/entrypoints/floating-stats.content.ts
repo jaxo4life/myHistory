@@ -223,7 +223,19 @@ export default defineContentScript({
           if (moved) {
             const left = parseFloat(w.host.style.left) || 0;
             const top = parseFloat(w.host.style.top) || 0;
-            await chrome.storage.local.set({ [POS_KEY]: { left, top } });
+            const stored = (await chrome.storage.local.get(POS_KEY)) as Record<string, unknown>;
+            const existing = stored[POS_KEY];
+            const map: { [d: string]: { left: number; top: number } } = {};
+            // 旧全局格式 {left,top} 丢弃；否则继承现有 per-domain map
+            if (
+              existing &&
+              typeof existing === 'object' &&
+              typeof (existing as Record<string, unknown>).left !== 'number'
+            ) {
+              Object.assign(map, existing as Record<string, unknown>);
+            }
+            map[domain] = { left, top };
+            await chrome.storage.local.set({ [POS_KEY]: map });
           }
         },
         { signal },
@@ -244,15 +256,33 @@ export default defineContentScript({
     }
 
     async function readSettings() {
-      const data = await chrome.storage.local.get([POS_KEY, SETTINGS_KEY]);
+      const data = (await chrome.storage.local.get([POS_KEY, SETTINGS_KEY])) as Record<
+        string,
+        unknown
+      >;
       const s = data[SETTINGS_KEY] as {
         locale?: Locale;
         floatingStats?: boolean;
         hiddenSites?: string[];
       } | undefined;
       const hiddenSites = s?.hiddenSites ?? [];
+      // per-domain 位置：POS_KEY 存 { [domain]: {left,top} }；
+      // 兼容旧全局格式 {left,top}（升级后各站沿用旧位置，直到单独拖拽）
+      let pos: { left: number; top: number } | undefined;
+      const rawPos = data[POS_KEY];
+      if (rawPos && typeof rawPos === 'object') {
+        const r = rawPos as Record<string, unknown>;
+        if (typeof r.left === 'number' && typeof r.top === 'number') {
+          pos = { left: r.left, top: r.top }; // 旧全局格式
+        } else {
+          const entry = r[domain] as { left?: number; top?: number } | undefined;
+          if (entry && typeof entry.left === 'number' && typeof entry.top === 'number') {
+            pos = { left: entry.left, top: entry.top };
+          }
+        }
+      }
       return {
-        pos: data[POS_KEY] as { left: number; top: number } | undefined,
+        pos,
         locale: (s?.locale ?? 'zh') as Locale,
         floating: (s?.floatingStats ?? true) && !hiddenSites.includes(domain),
       };
