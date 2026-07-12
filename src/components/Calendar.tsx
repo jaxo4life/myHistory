@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildMonthGrid, weekdayLabels, type CalendarDay } from '../lib/calendar';
-import { getDayCountsInRange } from '../db/queries';
+import { getDayCountsFiltered } from '../db/queries';
+import { useSettingsVersion } from '../store/useSettingsVersion';
 import { getDayKey } from '../lib/url-utils';
 import { formatMonthTitle, formatMonthAbbr } from '../lib/date-format';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -8,12 +9,14 @@ import { useI18n } from '../i18n';
 
 interface Props {
   weekStart: 0 | 1;
-  selectedDayKey: string;
-  onSelect: (dayKey: string) => void;
+  selectedDayKey: string | null;
+  onSelect: (dayKey: string | null) => void;
+  filters?: { query: string; domain: string; category: string; tag: string };
 }
 
-export function Calendar({ weekStart, selectedDayKey, onSelect }: Props) {
+export function Calendar({ weekStart, selectedDayKey, onSelect, filters }: Props) {
   const { t, locale } = useI18n();
+  const settingsVersion = useSettingsVersion();
   const today = useMemo(() => Date.now(), []);
   const todayKey = useMemo(() => getDayKey(today), [today]);
   const todayDate = useMemo(() => new Date(today), [today]);
@@ -30,8 +33,16 @@ export function Calendar({ weekStart, selectedDayKey, onSelect }: Props) {
   }, [year, month]);
 
   const counts = useLiveQuery(
-    () => getDayCountsInRange(range.start, range.end),
-    [range.start, range.end],
+    () =>
+      getDayCountsFiltered({
+        startMs: range.start,
+        endMs: range.end,
+        query: filters?.query,
+        domain: filters?.domain,
+        category: filters?.category,
+        tag: filters?.tag,
+      }),
+    [range.start, range.end, filters?.query, filters?.domain, filters?.category, filters?.tag, settingsVersion],
   );
   const grid = useMemo(
     () => buildMonthGrid(year, month, weekStart, today),
@@ -186,6 +197,14 @@ export function Calendar({ weekStart, selectedDayKey, onSelect }: Props) {
           </div>
         ))}
       </div>
+      <button
+        onClick={() => onSelect(null)}
+        className={`rounded px-2 py-1 text-xs transition-colors ${
+          selectedDayKey === null ? 'bg-accent text-white' : 'text-muted hover:bg-card'
+        }`}
+      >
+        {t('cal.allDates')}
+      </button>
     </div>
   );
 }

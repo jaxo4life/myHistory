@@ -25,8 +25,53 @@ export async function getDayCountsInRange(
   return counts;
 }
 
+export async function getDayCountsFiltered(opts: {
+  startMs: number;
+  endMs: number;
+  query?: string;
+  domain?: string;
+  category?: string;
+  tag?: string;
+}): Promise<Record<string, number>> {
+  const f: VisitFilter = {
+    q: opts.query?.trim().toLowerCase() ?? '',
+    d: opts.domain?.trim().toLowerCase() ?? '',
+    category: opts.category,
+    rules: opts.category ? await getCategories() : null,
+    tag: opts.tag,
+  };
+  const rows = await db.visits.where('visitTime').between(opts.startMs, opts.endMs, true, false).toArray();
+  const counts: Record<string, number> = {};
+  for (const v of rows) {
+    if (!matchVisit(v, f)) continue;
+    counts[v.dayKey] = (counts[v.dayKey] ?? 0) + 1;
+  }
+  return counts;
+}
+
 export async function deleteVisit(id: number): Promise<void> {
   await db.visits.delete(id);
+}
+
+interface VisitFilter {
+  q: string;
+  d: string;
+  category?: string;
+  rules: CategoryDef[] | null;
+  tag?: string;
+}
+
+function matchVisit(v: Visit, f: VisitFilter): boolean {
+  if (f.q) {
+    const hay = v.title.toLowerCase();
+    if (!hay.includes(f.q) && !v.url.toLowerCase().includes(f.q) && !v.domain.toLowerCase().includes(f.q)) {
+      return false;
+    }
+  }
+  if (f.d && !v.domain.toLowerCase().includes(f.d)) return false;
+  if (f.category && f.rules && classifyDomain(v.domain, f.rules) !== f.category) return false;
+  if (f.tag && !(v.tags ?? []).includes(f.tag)) return false;
+  return true;
 }
 
 export async function searchVisits(opts: {
@@ -37,20 +82,16 @@ export async function searchVisits(opts: {
   startDate?: number;
   endDate?: number;
 }): Promise<Visit[]> {
-  const q = opts.query.trim().toLowerCase();
-  const d = opts.domain?.trim().toLowerCase() ?? '';
-  const rules = opts.category ? await getCategories() : null;
+  const f: VisitFilter = {
+    q: opts.query.trim().toLowerCase(),
+    d: opts.domain?.trim().toLowerCase() ?? '',
+    category: opts.category,
+    rules: opts.category ? await getCategories() : null,
+    tag: opts.tag,
+  };
   const rows = await db.visits.toArray();
   const filtered = rows.filter((v) => {
-    if (q) {
-      const hay = v.title.toLowerCase();
-      if (!hay.includes(q) && !v.url.toLowerCase().includes(q) && !v.domain.toLowerCase().includes(q)) {
-        return false;
-      }
-    }
-    if (d && !v.domain.toLowerCase().includes(d)) return false;
-    if (opts.category && rules && classifyDomain(v.domain, rules) !== opts.category) return false;
-    if (opts.tag && !(v.tags ?? []).includes(opts.tag)) return false;
+    if (!matchVisit(v, f)) return false;
     if (opts.startDate && v.visitTime < opts.startDate) return false;
     if (opts.endDate && v.visitTime >= opts.endDate) return false;
     return true;

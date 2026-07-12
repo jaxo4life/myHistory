@@ -9,8 +9,10 @@ import { TagStats } from '../../components/TagStats';
 import { DaySummary } from '../../components/DaySummary';
 import { AnalyticsView } from '../../components/AnalyticsView';
 import { ManageView } from '../../components/ManageView';
+import { Modal } from '../../components/Modal';
 import { getByDayKey, searchVisits, deleteVisits } from '../../db/queries';
-import { todayKey } from '../../lib/url-utils';
+import { todayKey, dayKeyToRange } from '../../lib/url-utils';
+import { visitsToCSV, visitsToJSON, downloadText, stampedFilename } from '../../lib/exporter';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getSettings, type Settings } from '../../store/settings';
 import { useSettingsVersion } from '../../store/useSettingsVersion';
@@ -24,28 +26,39 @@ export function App() {
   const { t, locale } = useI18n();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [view, setView] = useState<View>('history');
-  const [selectedDayKey, setSelectedDayKey] = useState<string>(todayKey());
+  const [selectedDayKey, setSelectedDayKey] = useState<string | null>(todayKey());
   const [searchQuery, setSearchQuery] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const settingsVersion = useSettingsVersion();
 
   useEffect(() => {
     getSettings().then(setSettings);
   }, []);
 
-  const visits = useLiveQuery(() => getByDayKey(selectedDayKey), [selectedDayKey]);
   const hasFilter =
     searchQuery.trim() !== '' || domainFilter.trim() !== '' || categoryFilter !== '' || tagFilter !== '';
   const deferredQuery = useDeferredValue(searchQuery);
-  const searchResults = useLiveQuery(
-    () => searchVisits({ query: deferredQuery, domain: domainFilter, category: categoryFilter, tag: tagFilter }),
-    [deferredQuery, domainFilter, categoryFilter, tagFilter, settingsVersion],
+  const listVisits = useLiveQuery(
+    async () => {
+      if (!hasFilter && selectedDayKey) {
+        return getByDayKey(selectedDayKey);
+      }
+      return searchVisits({
+        query: deferredQuery,
+        domain: domainFilter,
+        category: categoryFilter,
+        tag: tagFilter,
+        ...(selectedDayKey ? dayKeyToRange(selectedDayKey) : {}),
+      });
+    },
+    [deferredQuery, domainFilter, categoryFilter, tagFilter, selectedDayKey, settingsVersion],
   );
-  const listVisits = hasFilter ? searchResults : visits;
 
   function toggleSelect(id: number) {
     setSelectedIds((prev) => {
@@ -56,11 +69,28 @@ export function App() {
     });
   }
 
-  async function deleteSelected() {
+  function deleteSelected() {
     if (selectedIds.size === 0) return;
+    setConfirmDelete(true);
+  }
+
+  async function doDeleteSelected() {
     await deleteVisits([...selectedIds]);
     setSelectedIds(new Set());
     setSelectionMode(false);
+    setConfirmDelete(false);
+  }
+
+  function exportCurrent(format: 'csv' | 'json') {
+    const data = listVisits ?? [];
+    if (data.length === 0) return;
+    const content = format === 'csv' ? visitsToCSV(data) : visitsToJSON(data);
+    downloadText(
+      stampedFilename('history', format),
+      content,
+      format === 'csv' ? 'text/csv' : 'application/json',
+    );
+    setExportOpen(false);
   }
 
   function selectAll() {
@@ -121,13 +151,16 @@ export function App() {
               weekStart={locale === 'zh' ? 1 : 0}
               selectedDayKey={selectedDayKey}
               onSelect={setSelectedDayKey}
+              filters={{ query: deferredQuery, domain: domainFilter, category: categoryFilter, tag: tagFilter }}
             />
-            <div className="mt-6">
-              <div className="mb-2 text-xs font-medium tracking-wide text-muted">
-                {t('sidebar.daySummary')}
+            {selectedDayKey && (
+              <div className="mt-6">
+                <div className="mb-2 text-xs font-medium tracking-wide text-muted">
+                  {t('sidebar.daySummary')}
+                </div>
+                <DaySummary dayKey={selectedDayKey} />
               </div>
-              <DaySummary dayKey={selectedDayKey} />
-            </div>
+            )}
             <div className="mt-auto pt-4 text-center text-xs text-muted">
               myHistory v{APP_VERSION}
             </div>
@@ -184,12 +217,14 @@ export function App() {
                   </>
                 ) : (
                   <>
-                    <input
-                      value={domainFilter}
-                      onChange={(e) => setDomainFilter(e.target.value)}
-                      placeholder={t('search.domainPlaceholder')}
-                      className="w-28 rounded-lg bg-card px-2.5 py-1 text-xs text-fg outline-none ring-1 ring-border transition-shadow focus:ring-accent"
-                    />
+                    {domainFilter && (
+                      <button
+                        onClick={() => setDomainFilter('')}
+                        className="rounded-lg bg-accent/15 px-2 py-1 text-xs text-accent transition-colors hover:bg-accent/25"
+                      >
+                        {domainFilter} ✕
+                      </button>
+                    )}
                     {categoryFilter && (
                       <button
                         onClick={() => setCategoryFilter('')}
@@ -206,14 +241,21 @@ export function App() {
                         #{tagFilter} ✕
                       </button>
                     )}
-                    {hasFilter && (
+                    {(hasFilter || selectedDayKey === null) && (
                       <span className="text-xs text-muted">
                         {t('search.resultCount', { n: listVisits?.length ?? 0 })}
                       </span>
                     )}
                     <button
+                      onClick={() => setExportOpen(true)}
+                      disabled={(listVisits ?? []).length === 0}
+                      className="ml-auto rounded-lg bg-card px-2.5 py-1 text-xs text-fg transition-colors hover:bg-border disabled:opacity-40"
+                    >
+                      {t('search.export')}
+                    </button>
+                    <button
                       onClick={() => setSelectionMode(true)}
-                      className="ml-auto rounded-lg bg-card px-2.5 py-1 text-xs text-fg transition-colors hover:bg-border"
+                      className="rounded-lg bg-card px-2.5 py-1 text-xs text-fg transition-colors hover:bg-border"
                     >
                       {t('search.selectMode')}
                     </button>
@@ -243,6 +285,56 @@ export function App() {
             </div>
           </aside>
         </div>
+      )}
+
+      {confirmDelete && (
+        <Modal title={t('search.deleteConfirm.title')} onClose={() => setConfirmDelete(false)}>
+          <div className="mb-4 text-sm text-fg">
+            {t('search.deleteConfirm.body', { n: selectedIds.size })}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="rounded bg-card px-3 py-1 text-sm text-fg"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={doDeleteSelected}
+              className="rounded bg-red-500 px-3 py-1 text-sm text-white transition-opacity hover:opacity-90"
+            >
+              {t('search.deleteConfirm.confirmBtn')}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {exportOpen && (
+        <Modal title={t('search.exportTitle')} onClose={() => setExportOpen(false)}>
+          <div className="mb-4 text-sm text-fg">
+            {t('search.exportCount', { n: (listVisits ?? []).length })}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setExportOpen(false)}
+              className="rounded bg-card px-3 py-1 text-sm text-fg"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={() => exportCurrent('csv')}
+              className="rounded bg-accent px-3 py-1 text-sm text-white transition-opacity hover:opacity-90"
+            >
+              {t('manage.exportCsv')}
+            </button>
+            <button
+              onClick={() => exportCurrent('json')}
+              className="rounded bg-bg px-3 py-1 text-sm text-fg ring-1 ring-border transition-colors hover:bg-border"
+            >
+              {t('manage.exportJson')}
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );

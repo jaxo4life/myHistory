@@ -1,7 +1,7 @@
 import type { Visit } from '../types/visit';
 import type { CategoryDef } from './categories';
 
-const CSV_HEADERS = ['visitTime', 'dayKey', 'domain', 'title', 'url', 'transitionType'];
+const CSV_HEADERS = ['visitTime', 'dayKey', 'domain', 'title', 'url', 'transitionType', 'tags'];
 
 function csvEscape(value: unknown): string {
   const s = String(value ?? '');
@@ -15,7 +15,7 @@ export function visitsToCSV(visits: Visit[]): string {
   const lines = [CSV_HEADERS.join(',')];
   for (const v of visits) {
     lines.push(
-      [v.visitTime, v.dayKey, v.domain, v.title, v.url, v.transitionType]
+      [v.visitTime, v.dayKey, v.domain, v.title, v.url, v.transitionType, (v.tags ?? []).join(';')]
         .map(csvEscape)
         .join(','),
     );

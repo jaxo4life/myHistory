@@ -14,6 +14,14 @@ export function getDayKey(timestamp: number): string {
   return `${y}-${m}-${day}`;
 }
 
+export function dayKeyToRange(dayKey: string): { startDate: number; endDate: number } {
+  const [y, m, d] = dayKey.split('-').map(Number);
+  return {
+    startDate: new Date(y, m - 1, d).getTime(),
+    endDate: new Date(y, m - 1, d + 1).getTime(),
+  };
+}
+
 export const todayKey = (): string => getDayKey(Date.now());
 export const yesterdayKey = (): string => getDayKey(Date.now() - 86_400_000);
 
