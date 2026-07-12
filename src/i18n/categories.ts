@@ -11,6 +11,7 @@ export const BUILTIN_CATEGORY_EN: Record<string, string> = {
   '搜索': 'Search',
   'AI': 'AI',
   '工作': 'Work',
+  '云服务': 'Cloud',
   '开发': 'Dev',
   '学习': 'Learning',
   '参考': 'Reference',
@@ -19,6 +20,7 @@ export const BUILTIN_CATEGORY_EN: Record<string, string> = {
   '旅行': 'Travel',
   '游戏': 'Games',
   '工具': 'Tools',
+  '成人': 'Adult',
   '本地': 'Local',
   '其他': 'Other',
 };
