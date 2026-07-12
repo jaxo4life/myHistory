@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.7-6C5CE7.svg" alt="Version">
+  <img src="https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/jaxo4life/myHistory/main/package.json&query=$.version&label=version&color=6C5CE7" alt="Version">
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/TypeScript-5-3178c6.svg" alt="TypeScript">
   <img src="https://img.shields.io/badge/React-19-61dafb.svg" alt="React">
