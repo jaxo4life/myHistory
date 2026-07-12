@@ -6,7 +6,7 @@ export default defineConfig({
   manifest: {
     name: 'myHistory',
     description: 'Open-source, fully local, auditable browsing history manager',
-    version: '0.1.6',
+    version: '0.1.7',
     action: {
       default_title: 'myHistory',
     },

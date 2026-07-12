@@ -2,8 +2,6 @@
   <img src="public/icon/512.png" width="120" alt="myHistory">
 </p>
 
-<h1 align="center">myHistory</h1>
-
 <p align="center">Open-source, fully-local, auditable Chrome browsing-history manager — an open alternative to the closed-source <a href="https://browserhistory.net/">Browser History Plus</a>.</p>
 
 <p align="center">
@@ -11,6 +9,7 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/version-0.1.7-6C5CE7.svg" alt="Version">
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/TypeScript-5-3178c6.svg" alt="TypeScript">
   <img src="https://img.shields.io/badge/React-19-61dafb.svg" alt="React">
@@ -33,18 +32,25 @@ Your browsing history **stays on your own machine.** Zero network reporting, zer
 - Incognito / internal pages (`chrome://`, `about:`, `file://`) / blacklisted domains are never recorded
 
 ### 📅 Browsing
-- **Calendar view**: see at a glance which days have activity; click a day to view its history (with a day-summary card)
+- **Calendar view**: see at a glance which days have activity; dots update live with the current filter; switch between a specific day and "all dates"
+- **Filter = global**: setting category / tag / domain / search auto-switches to all dates for cross-date matches; click a day to narrow back down
+- **Stackable filters**: domain / category / tag / full-text search, all clearable chips
 - **Grouped-by-day list**: Today / Yesterday / Earlier, sticky headers, hover-revealed actions
-- **Full-text search** + domain / category / tag filters, stackable
+- **Export current view** as CSV / JSON (with a count preview)
+- **Bulk delete**: selected records require a confirmation step
 
 ### 📊 Analytics Dashboard
-- **Today's focus + day-over-day change** (hero)
-- **Visit trend**: 7 / 30 / 90 days / All
-- **Week × hour heatmap**: 5-step color scale + peak indicator + legend
-- Active hours / visit sources / Top domains (full) / category distribution
+- **Profile hero**: today's visits + day-over-day + auto labels (Night owl / Deep diver / Regular …)
+- **Derived metrics**: concentration (top-5 share) / diversity (Shannon entropy) / discovery / loyalty
+- **Behavior radar**: Activity / Diversity / Focus / Discovery / Regularity — five-axis profile
+- **Trend + 7-day moving average**: smooths daily noise; 7 / 30 / 90 days / All
+- **Week × hour heatmap**: 5-step color scale + peak indicator
+- **Weekday vs weekend** daily-average comparison
+- **Sessions**: count / avg length / longest / **distraction index** (switch rate)
+- **Category trend** (stacked area) / tag cloud / visit sources / top domains (full)
 
 ### 🗂 Smart Categories
-- **19 built-in categories** (Social / Video / Shopping / News / AI / Dev / Tools / Travel / Finance / Crypto / Local …), covering global + Chinese mainstream sites
+- **21 built-in categories** (Social / Video / Music / Shopping / Life / News / Mail / Search / AI / Work / Cloud / Dev / Learning / Reference / Finance / Crypto / Travel / Games / Tools / Adult / Local), covering global + Chinese mainstream sites
 - **One-click reclassify**: hover any record to see its current category; click the folder icon to add its domain to a chosen category (auto-extracts the registrable domain with multi-part-TLD awareness, e.g. `www.right.com.cn → right.com.cn`; editable)
 - **Longest-match + keyword fallback**: precise rules first; unmatched by keyword heuristics; LAN IPs / `localhost` / `.local` auto-classified as "Local"
 - **Version migration**: rule upgrades migrate existing users automatically; custom categories preserved
@@ -56,8 +62,7 @@ Your browsing history **stays on your own machine.** Zero network reporting, zer
 
 ### 🎨 More
 - **Dark / light themes** (design-token layer, deep-dark color layering + dark-friendly shadows)
-- Export CSV / JSON
-- Bulk select-delete / clear-all (with confirmation)
+- Manage page: data overview / clear-all (type-to-confirm) / floating-stats toggle
 
 ---
 
@@ -104,7 +109,7 @@ npm test           # unit tests (vitest)
 
 ## 📋 Roadmap
 
-- [x] Calendar / search / categories / tags / analytics / zh-en i18n / dark-light themes / export
+- [x] Calendar / search / categories / tags / analytics dashboard (derived metrics + behavior profile + sessions) / zh-en / dark-light themes / export
 - [ ] Automatic local backup
 - [ ] Timeline / tag views
 - [ ] More languages
