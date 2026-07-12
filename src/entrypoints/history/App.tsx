@@ -93,6 +93,19 @@ export function App() {
     setExportOpen(false);
   }
 
+  function pickCategory(c: string) {
+    setCategoryFilter(c);
+    setSelectedDayKey(null);
+  }
+  function pickTag(tg: string) {
+    setTagFilter(tg);
+    setSelectedDayKey(null);
+  }
+  function pickDomain(d: string) {
+    setDomainFilter(d);
+    setSelectedDayKey(null);
+  }
+
   function selectAll() {
     const ids = (listVisits ?? [])
       .map((v) => v.id)
@@ -181,7 +194,10 @@ export function App() {
                 </svg>
                 <input
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setSelectedDayKey(null);
+                  }}
                   placeholder={t('search.placeholder')}
                   className="w-full rounded-lg bg-card py-2 pl-9 pr-3 text-sm text-fg outline-none ring-1 ring-border transition-shadow focus:ring-accent"
                 />
@@ -268,20 +284,20 @@ export function App() {
               selectionMode={selectionMode}
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
-              onTagClick={setTagFilter}
+              onTagClick={pickTag}
               settingsVersion={settingsVersion}
             />
           </main>
           <aside className="no-scrollbar flex w-[300px] shrink-0 flex-col overflow-y-auto p-5">
             <div className="mb-1 text-sm font-semibold text-fg">{t('sidebar.categories')}</div>
-            <CategoryStats onPick={setCategoryFilter} version={settingsVersion} />
+            <CategoryStats onPick={pickCategory} version={settingsVersion} />
             <div className="mb-1 mt-4 text-sm font-semibold text-fg">{t('sidebar.tags')}</div>
-            <TagStats onPick={setTagFilter} version={settingsVersion} />
+            <TagStats onPick={pickTag} version={settingsVersion} />
             <div className="mb-1 mt-4 text-sm font-semibold text-fg">
               {t('sidebar.topDomains')}
             </div>
             <div className="flex-1">
-              <DomainStats onPick={setDomainFilter} limit={10} />
+              <DomainStats onPick={pickDomain} limit={10} />
             </div>
           </aside>
         </div>
