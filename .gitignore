@@ -28,3 +28,10 @@ Thumbs.db
 # 编辑器
 .vscode/
 .idea/
+
+# 项目级 AI 协作约定（本地，不提交）
+CLAUDE.md
+
+# 本地文档与测试（不进仓库）
+docs/
+tests/
