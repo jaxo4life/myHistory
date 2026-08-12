@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://jaxo4life.github.io/myHistory/"><img src="https://img.shields.io/badge/🌐_Website-myHistory-6C5CE7" alt="Website"></a>
   <img src="https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/jaxo4life/myHistory/main/package.json&query=$.version&label=version&color=6C5CE7" alt="Version">
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/TypeScript-5-3178c6.svg" alt="TypeScript">
