@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>myHistory — 纯本地的 Chrome 浏览历史管理</title>
+<meta name="description" content="开源、纯本地、可审计的 Chrome 浏览历史管理扩展。突破 90 天限制，智能分类，分析仪表盘带行为画像与会话洞察。">
+<link rel="icon" href="https://raw.githubusercontent.com/jaxo4life/myHistory/main/public/icon/512.png">
+<style>
+  :root{
+    --bg:#0b0b12; --bg2:#12121d; --card:rgba(255,255,255,.045); --card-h:rgba(255,255,255,.07);
+    --border:rgba(255,255,255,.09); --text:#ececf4; --muted:#9a9ab4; --faint:#6a6a82;
+    --accent:#6C5CE7; --accent2:#3B82F6; --orange:#F97316; --green:#10B981; --pink:#EC4899;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.65; -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:10;backdrop-filter:blur(14px);background:rgba(11,11,18,.72);border-bottom:1px solid var(--border)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:62px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.01em}
+  .brand img{width:30px;height:30px;border-radius:8px}
+  .nav-links{display:flex;align-items:center;gap:26px;font-size:14px;color:var(--muted)}
+  .nav-links a:hover{color:var(--text)}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:10px;font-size:14px;font-weight:600;transition:.2s;cursor:pointer;border:1px solid transparent}
+  .btn-ghost{color:var(--muted);border-color:var(--border)}
+  .btn-ghost:hover{color:var(--text);border-color:var(--faint)}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),#8b7bf0);color:#fff;box-shadow:0 8px 24px -8px rgba(108,92,231,.6)}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 12px 28px -8px rgba(108,92,231,.8)}
+
+  /* hero */
+  header{position:relative;padding:96px 0 80px;text-align:center;overflow:hidden}
+  header::before{content:"";position:absolute;inset:0;background:
+    radial-gradient(60% 50% at 50% 0%,rgba(108,92,231,.28),transparent 70%),
+    radial-gradient(40% 35% at 80% 20%,rgba(59,130,246,.16),transparent 70%);
+    pointer-events:none}
+  header .wrap{position:relative}
+  .hero-logo{width:96px;height:96px;border-radius:24px;margin-bottom:26px;box-shadow:0 20px 50px -12px rgba(108,92,231,.5)}
+  h1{font-size:clamp(38px,6vw,68px);font-weight:800;letter-spacing:-.03em;line-height:1.05;margin-bottom:20px}
+  h1 .grad{background:linear-gradient(120deg,#fff 20%,#b8a8f5 50%,var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .tagline{font-size:clamp(17px,2.2vw,21px);color:var(--muted);max-width:620px;margin:0 auto 14px}
+  .pill-row{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin:22px 0 38px}
+  .pill{font-size:13px;padding:6px 14px;border-radius:999px;background:var(--card);border:1px solid var(--border);color:#c8c8dc}
+  .pill b{color:var(--accent);font-weight:600}
+  .cta-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+  section{padding:72px 0;border-top:1px solid var(--border)}
+  .eyebrow{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+  h2{font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.02em;margin-bottom:16px}
+  .lead{color:var(--muted);font-size:17px;max-width:640px}
+
+  .privacy{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+  .privacy .big{font-size:clamp(28px,3.4vw,40px);font-weight:800;line-height:1.25;letter-spacing:-.02em}
+  .privacy .big em{font-style:normal;color:var(--green)}
+  .check-list{list-style:none;display:grid;gap:14px;margin-top:24px}
+  .check-list li{display:flex;gap:12px;color:#c4c4d6;font-size:15.5px}
+  .check-list svg{flex-shrink:0;margin-top:3px;color:var(--green)}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:42px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:26px;transition:.22s}
+  .card:hover{background:var(--card-h);transform:translateY(-3px);border-color:rgba(108,92,231,.35)}
+  .card .ico{font-size:30px;margin-bottom:14px}
+  .card h3{font-size:17.5px;font-weight:700;margin-bottom:8px}
+  .card p{color:var(--muted);font-size:14.5px;line-height:1.6}
+  .card .tag{display:inline-block;margin-top:12px;font-size:12px;color:var(--accent);background:rgba(108,92,231,.14);padding:3px 10px;border-radius:6px}
+
+  /* analytics spotlight */
+  .spotlight{background:linear-gradient(180deg,var(--bg2),var(--bg));border-radius:24px;border:1px solid var(--border);padding:42px;margin-top:42px}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:30px 0}
+  .metric{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:20px}
+  .metric .v{font-size:30px;font-weight:800;letter-spacing:-.02em}
+  .metric .v small{font-size:16px;color:var(--muted)}
+  .metric .k{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .metric.u .v{color:var(--accent2)} .metric.g .v{color:var(--green)} .metric.o .v{color:var(--orange)} .metric.p .v{color:var(--accent)}
+  .archetypes{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+  .archetypes span{font-size:14px;padding:8px 16px;border-radius:999px;background:rgba(108,92,231,.16);color:#cfc4f5;font-weight:500}
+
+  .stack{display:flex;flex-wrap:wrap;gap:10px;margin-top:36px}
+  .stack span{font-size:13.5px;padding:9px 16px;border-radius:10px;background:var(--card);border:1px solid var(--border);color:#c0c0d4;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  footer{padding:60px 0 50px;text-align:center;color:var(--faint);font-size:14px;border-top:1px solid var(--border)}
+  footer a{color:var(--muted)} footer a:hover{color:var(--text)}
+  footer .brand{justify-content:center;margin-bottom:18px}
+
+  @media(max-width:820px){
+    .privacy,.grid,.metrics{grid-template-columns:1fr}
+    .grid,.metrics{grid-template-columns:repeat(2,1fr)}
+    .spotlight{padding:26px}
+    .nav-links{display:none}
+  }
+  @media(max-width:520px){.grid,.metrics{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="https://raw.githubusercontent.com/jaxo4life/myHistory/main/public/icon/512.png" alt="">myHistory</a>
+    <div class="nav-links">
+      <a href="#privacy">隐私</a>
+      <a href="#features">特性</a>
+      <a href="#analytics">分析</a>
+      <a href="https://github.com/jaxo4life/myHistory">GitHub</a>
+    </div>
+    <a class="btn btn-ghost" href="https://github.com/jaxo4life/myHistory">★ Star</a>
+  </div>
+</nav>
+
+<header>
+  <div class="wrap">
+    <img class="hero-logo" src="https://raw.githubusercontent.com/jaxo4life/myHistory/main/public/icon/512.png" alt="myHistory">
+    <h1>把浏览历史<br><span class="grad">收回到自己手里</span></h1>
+    <p class="tagline">开源、纯本地、可审计的 Chrome 浏览历史管理扩展。突破 Chrome 90 天限制，带智能分类与行为洞察。</p>
+    <div class="pill-row">
+      <span class="pill">🔒 <b>零上传</b> 数据不出本机</span>
+      <span class="pill">📅 突破 <b>90 天</b> 限制</span>
+      <span class="pill">📊 行为画像 + 分心指数</span>
+      <span class="pill">🗂 21 类智能分类</span>
+    </div>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/jaxo4life/myHistory">查看源码 →</a>
+      <a class="btn btn-ghost" href="https://github.com/jaxo4life/myHistory#-安装">安装指南</a>
+    </div>
+  </div>
+</header>
+
+<section id="privacy">
+  <div class="wrap privacy">
+    <div>
+      <div class="eyebrow">数据主权</div>
+      <div class="big">你的历史<br><em>只存在你自己的电脑上</em></div>
+    </div>
+    <div>
+      <p class="lead">没有任何外部服务器、上报、第三方分析。采集逻辑集中在单文件 <code>background.ts</code>，全开源、一行行可审计。</p>
+      <ul class="check-list">
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>纯本地 IndexedDB，绝不上传</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>隐身模式 / 内部页 / 黑名单域名不记录</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>manifest 不申请多余 host 权限</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="eyebrow">核心特性</div>
+    <h2>不止记历史，更看懂历史</h2>
+    <p class="lead">从浏览、分类到分析，一套完整的本地历史管理体验。</p>
+    <div class="grid">
+      <div class="card"><div class="ico">📅</div><h3>日历浏览</h3><p>圆点随筛选实时变化，支持「全部日期」与某天切换；设分类/标签/域名/搜索自动跨日期匹配，点日历可二次收窄。</p><span class="tag">多维筛选 chip</span></div>
+      <div class="card"><div class="ico">🗂</div><h3>智能分类</h3><p>21 个内置分类覆盖全球 + 中国主流站点。最长匹配 + 关键词兜底，一键把域名加入分类，多段 TLD 自动提取。</p><span class="tag">完全可定制</span></div>
+      <div class="card"><div class="ico">#️⃣</div><h3>标签 + 导出</h3><p>给记录打自定义标签，按当前视图一键导出 CSV / JSON（含 tags 列），批量删除二次确认。</p><span class="tag">本地导出</span></div>
+      <div class="card"><div class="ico">🌐</div><h3>中英双语</h3><p>一键切换中文 / English，日历、月份、日期格式全跟随；自动检测浏览器语言。</p><span class="tag">零依赖 i18n</span></div>
+      <div class="card"><div class="ico">🎨</div><h3>深浅双主题</h3><p>设计令牌层，深色色彩重分层 + 深色友好阴影，长时间浏览不刺眼。</p><span class="tag">设计系统</span></div>
+      <div class="card"><div class="ico">📊</div><h3>悬浮统计窗</h3><p>在任意网页悬浮显示当日访问数与该站点统计，可按站点一键隐藏。</p><span class="tag">contextMenu</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="analytics">
+  <div class="wrap">
+    <div class="eyebrow">分析仪表盘</div>
+    <h2>从数字里读出自己的浏览画像</h2>
+    <p class="lead">不只是一堆计数 —— 派生指标、行为雷达、浏览会话，把数据翻译成可读的洞察。</p>
+    <div class="spotlight">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:20px;align-items:flex-end">
+        <div>
+          <div style="color:var(--muted);font-size:14px">今日访问</div>
+          <div style="font-size:52px;font-weight:800;letter-spacing:-.03em">142 <span style="font-size:18px;color:var(--green);font-weight:600">↑12 vs 昨日</span></div>
+        </div>
+        <div class="archetypes">
+          <span>🌙 夜猫子</span><span>🎯 深耕型</span><span>📊 规律型</span>
+        </div>
+      </div>
+      <div class="metrics">
+        <div class="metric p"><div class="v">62<small>%</small></div><div class="k">注意力集中度 · Top5 域名</div></div>
+        <div class="metric u"><div class="v">73<small>%</small></div><div class="k">浏览多样性 · Shannon 熵</div></div>
+        <div class="metric g"><div class="v">28<small>%</small></div><div class="k">发现率 · 近30天新域名</div></div>
+        <div class="metric o"><div class="v">19<small>%</small></div><div class="k">分心指数 · 会话切换频率</div></div>
+      </div>
+      <p style="color:var(--muted);font-size:14.5px">另有行为雷达（活跃/多样/专注/发现/规律 五维）、趋势 + 7 日均线、一周×时段热力图、工作日 vs 周末、分类演变堆叠图、浏览会话（最长一次 / 平均长度）。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">技术栈</div>
+    <h2>现代、轻量、可维护</h2>
+    <div class="stack">
+      <span>WXT (MV3)</span><span>React 19</span><span>TypeScript</span><span>Dexie · IndexedDB</span><span>Tailwind CSS</span><span>Recharts</span><span>自建轻量 i18n</span><span>Vitest</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="brand"><img src="https://raw.githubusercontent.com/jaxo4life/myHistory/main/public/icon/512.png" alt="">myHistory</div>
+    <p>MIT License · <a href="https://github.com/jaxo4life/myHistory">GitHub</a> · <a href="https://github.com/jaxo4life/myHistory/issues">Issues</a></p>
+    <p style="margin-top:8px">闭源 Browser History Plus 的开源替代。</p>
+  </div>
+</footer>
+
+</body>
+</html>
